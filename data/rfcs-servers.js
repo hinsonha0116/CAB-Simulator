@@ -81,11 +81,11 @@ RFCS.push(
     justification: "One internal A record. Range Control's system owner approved it. Ticket attached."
   },
   {
-    id: "SV-011", title: "DHCP reservation for the new S4 printer",
+    id: "SV-011", title: "DHCP reservation for the new Supply Cage printer",
     requester: "ortiz", type: "Standard", catalogueId: "SC-09", statedRisk: "Low",
     systems: ["DNS/DHCP Servers"], window: "Tue 1110-1115",
     rollback: "solid", testing: "yes", hiddenRisk: "Low",
-    justification: "One reservation so the printer keeps the same address. S4 approved. Ticket attached."
+    justification: "One reservation so the printer keeps the same address. The Supply Cage approved it. Ticket attached."
   },
   {
     id: "SV-012", title: "Change DNS forwarders to a faster public resolver (standard)",
@@ -291,7 +291,7 @@ RFCS.push(
     systems: ["VTC Bridge", "File Servers"], window: "This week",
     rollback: "weak", testing: "none", hiddenRisk: "Medium",
     justification: "The Colonel wants a record of every VTC 'for accountability'. All calls, all participants, stored on the file server forever.",
-    rejectedReport: "The XO told the Colonel that the CAB 'doesn't believe in accountability'. The JAG officer, who had concerns about recording everyone, has quietly thanked you."
+    rejectedReport: "The XO told the Colonel that the CAB 'doesn't believe in accountability'. The legal officer, who had concerns about recording everyone, has quietly thanked you."
   },
   {
     id: "SV-040", title: "Rebuild indexes on the logistics database",
@@ -478,7 +478,7 @@ RFCS.push(
     requester: "albright", type: "Normal", statedRisk: "Low",
     systems: ["File Servers"], window: "Thu 1700-1730",
     rollback: "solid", testing: "partial", hiddenRisk: "Medium",
-    justification: "The S3 share holds 4 TB of exercise videos. Quotas stop shares filling the server. Some shares are already over their new quota."
+    justification: "The Ops Floor share holds 4 TB of exercise videos. Quotas stop shares filling the server. Some shares are already over their new quota."
   },
   {
     id: "SV-064", title: "Delete files older than 7 years from all shares",
@@ -634,7 +634,7 @@ RFCS.push(
     requester: "ortiz", type: "Normal", statedRisk: "Medium",
     systems: ["Domain Controllers", "RADIUS Authentication Servers"], window: "Thu 1300-1500",
     rollback: "solid", testing: "partial", hiddenRisk: "Medium",
-    justification: "40% of help desk calls are password resets. Users verify with CAC and reset themselves. Tested with 25 users from the S6 shop."
+    justification: "40% of help desk calls are password resets. Users verify with CAC and reset themselves. Tested with 25 users from the Comms Shack."
   },
   {
     id: "SV-085", title: "Give the vendor remote access to 'optimise' the logistics database",
@@ -649,7 +649,7 @@ RFCS.push(
     systems: ["Mail Servers"], window: "Today",
     rollback: "solid", testing: "none", hiddenRisk: "High",
     justification: "The Colonel wants the XO to be able to 'check on things'. Full access to all mailboxes. It's for good order and discipline.",
-    rejectedReport: "The XO says the Colonel is 'very disappointed in the CAB's lack of support'. The Inspector General, who heard about the request, is very disappointed in something else."
+    rejectedReport: "The XO says the Colonel is 'very disappointed in the CAB's lack of support'. The Office of Inspections, which heard about the request, is very disappointed in something else."
   },
   {
     id: "SV-087", title: "Let PATCHBOT reboot servers automatically after patching",
@@ -803,7 +803,7 @@ RFCS.push(
     requester: "reyes", type: "Normal", statedRisk: "Low",
     systems: ["Mission Command Servers", "Domain Controllers"], window: "Thu 1000-1100",
     rollback: "solid", testing: "yes", hiddenRisk: "Low",
-    justification: "60 augmentees arrive Monday. Accounts expire automatically at ENDEX. Roles approved by the S3."
+    justification: "60 augmentees arrive Monday. Accounts expire automatically at ENDEX. Roles approved by the Ops Floor."
   },
   {
     id: "SV-108", title: "Disable NTLMv1 on domain controllers",

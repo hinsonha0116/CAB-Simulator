@@ -524,7 +524,7 @@ RFCS.push(
     rejectedReport: "The General's VTC stuttered twice. The XO's after-action report names 'the CAB's refusal' as the root cause."
   },
   {
-    id: "RT-071", title: "Add route for the new S2 intelligence workstation room",
+    id: "RT-071", title: "Add route for the new Intel Vault workstation room",
     requester: "reyes", type: "Normal", statedRisk: "Low",
     systems: ["SIPR Core Router", "SIPR Access Switches"], window: "Tue 1600-1615",
     rollback: "solid", testing: "yes", hiddenRisk: "Low",

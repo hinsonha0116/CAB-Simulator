@@ -1286,7 +1286,7 @@ function renderGameOver() {
 const GAME_OVER_MESSAGES = {
   stability: "The network is down. The installation is running on runners, radios and handwritten notes. The Colonel would like a word.",
   leadership: "The Colonel has replaced you as Change Manager. Your replacement is SSG Kowalski. Pray for the network.",
-  audit: "The inspection team found your change records. All of them. You are now a slide in the Inspector General's annual training.",
+  audit: "The inspection team found your change records. All of them. You are now a slide in the Office of Inspections' annual training.",
   sanity: "You have submitted an RFC titled 'Retire to a remote site with no network'. You marked it ready. The CAB approved it unanimously."
 };
 

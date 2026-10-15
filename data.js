@@ -29,6 +29,16 @@
    - EVENTS:              random events between weeks
    - STANDARD_CHANGE_CATALOGUE: pre-authorized change types
 
+   FICTIONAL SECTIONS (use these names in new scenarios; the game
+   deliberately avoids real military staff sections and offices):
+   - Personnel Pit         personnel and admin
+   - Intel Vault           intelligence
+   - Ops Floor             operations and exercises
+   - Supply Cage           supply and logistics
+   - Comms Shack           communications and IT (Capt. Reyes)
+   - Regional Network Directorate   higher HQ's network people (Mr. Menon, MAJ Albright)
+   - Office of Inspections          the inspectors who come to check your records
+
    ITIL quick reference (used to flavour the scenarios):
    - Change Manager:   that's you. You check each RFC is complete and ready
                        before it goes to the CAB. You don't approve it.
@@ -77,7 +87,7 @@ const CHARACTERS = {
   reyes: {
     name: "Capt. Elena Reyes",
     shortName: "Capt. Reyes",
-    role: "Battalion S6 (Communications Officer)",
+    role: "Battalion Comms Officer (runs the Comms Shack)",
     clout: "Medium",
     followThrough: "High",
     personality: "Runs the network like a range card: every sector covered, every risk drawn.",
@@ -189,7 +199,7 @@ const CHARACTERS = {
   menon: {
     name: "Mr. Ravi Menon",
     shortName: "Mr. Menon",
-    role: "Enterprise Architect, Higher HQ G6",
+    role: "Enterprise Architect, Regional Network Directorate",
     clout: "Medium",
     followThrough: "Medium",
     personality: "Every change needs a diagram. Every diagram needs a diagram.",
@@ -217,7 +227,7 @@ const CHARACTERS = {
   albright: {
     name: "MAJ Gwen Albright",
     shortName: "MAJ Albright",
-    role: "Deputy G6",
+    role: "Deputy Director, Regional Network Directorate",
     clout: "High",
     followThrough: "Medium",
     personality: "Remembers every outage since 2009, by date and by name of the person responsible.",
@@ -594,7 +604,7 @@ const PERFORMANCE_RATINGS = {
     blurb: "Almost nothing got past you to the CAB. The board met just to drink coffee. Requesters have started a support group."
   },
   rubberStamp: {
-    title: "Rubber Stamp, Signal Corps",
+    title: "Rubber Stamp, First Class",
     blurb: "You forwarded nearly everything, including RFCs with no rollback plan. MAJ Albright has started a page in her notebook just for you."
   },
   actuallyGood: {
@@ -632,8 +642,8 @@ const EVENTS = [
     id: "surpriseAudit",
     title: "No-notice cyber inspection!",
     text: [
-      "An inspection team from higher HQ has arrived for a no-notice Command Cyber Readiness Inspection. They'd like every change record since their last visit.",
-      "The Inspector General's office has 'just a few questions' about your change records. They've brought a printed list. It's double-sided."
+      "An inspection team from higher HQ has arrived for a no-notice Network Readiness Review. They'd like every change record since their last visit.",
+      "The Office of Inspections has 'just a few questions' about your change records. They've brought a printed list. It's double-sided."
     ],
     choices: [
       {

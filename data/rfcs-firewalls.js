@@ -751,7 +751,7 @@ RFCS.push(
     requester: "morgan", type: "Emergency", statedRisk: "High",
     systems: ["NIPR Perimeter Firewall", "SIPR Perimeter Firewall"], window: "Immediately",
     rollback: "solid", testing: "yes", hiddenRisk: "Low",
-    justification: "Large uploads to an unknown overseas host from a workstation in the S2 section. Block now, investigate after. One rule on each perimeter."
+    justification: "Large uploads to an unknown overseas host from a workstation in the Intel Vault. Block now, investigate after. One rule on each perimeter."
   },
   {
     id: "FW-100", title: "Raise VPN concurrent user limit for telework",
@@ -789,11 +789,11 @@ RFCS.push(
     justification: "STIG requirement. Tested on lab cluster. Brief sync interruption, no traffic impact."
   },
   {
-    id: "FW-104", title: "Allow the new S1 printer through the firewall",
+    id: "FW-104", title: "Allow the new Personnel Pit printer through the firewall",
     requester: "nakamura", type: "Normal", statedRisk: "Low",
     systems: ["Data Center Firewall", "Print Servers"], window: "Thu 1100-1110",
     rollback: "solid", testing: "yes", hiddenRisk: "Low",
-    justification: "My first firewall change! One printer, one print server, one port. I tested it. SFC Ortiz tested it. The S1 tested it by printing 'IT WORKS' in 72-point font."
+    justification: "My first firewall change! One printer, one print server, one port. I tested it. SFC Ortiz tested it. The Personnel Pit tested it by printing 'IT WORKS' in 72-point font."
   },
   {
     id: "FW-105", title: "Block newly registered internet domains",

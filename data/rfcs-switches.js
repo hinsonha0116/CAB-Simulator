@@ -5,11 +5,11 @@
    ===================================================================== */
 RFCS.push(
   {
-    id: "SW-001", title: "Move the S1 office port to the personnel VLAN",
+    id: "SW-001", title: "Move the Personnel Pit office port to the personnel VLAN",
     requester: "ortiz", type: "Standard", catalogueId: "SC-06", statedRisk: "Low",
     systems: ["HQ Building Switches"], window: "Tue 1200-1210",
     rollback: "solid", testing: "yes", hiddenRisk: "Low",
-    justification: "One access port, approved VLAN for the HQ building, port security stays on. The new S1 clerk can't reach the personnel system."
+    justification: "One access port, approved VLAN for the HQ building, port security stays on. The new Personnel Pit clerk can't reach the personnel system."
   },
   {
     id: "SW-002", title: "Change VLAN on the HQ uplink port (standard change)",
@@ -154,7 +154,7 @@ RFCS.push(
     justification: "Accredited replacements, configured and tested in the SIPR lab. Old switches kept until Monday. SIPR down in the TOC for 30 minutes."
   },
   {
-    id: "SW-020", title: "Assign SIPR access port for the new S3 workstation",
+    id: "SW-020", title: "Assign SIPR access port for the new Ops Floor workstation",
     requester: "reyes", type: "Standard", catalogueId: "SC-06", statedRisk: "Low",
     systems: ["SIPR Access Switches"], window: "Tue 1300-1310",
     rollback: "solid", testing: "yes", hiddenRisk: "Low",
@@ -341,7 +341,7 @@ RFCS.push(
     requester: "morgan", type: "Emergency", statedRisk: "Low",
     systems: ["HQ Building Switches"], window: "Immediately",
     rollback: "solid", testing: "yes", hiddenRisk: "Low",
-    justification: "Someone in the S4 shop plugged in a home Wi-Fi router named 'FREE_WIFI_NO_PASSWORD'. Shutting the port."
+    justification: "Someone in the Supply Cage plugged in a home Wi-Fi router named 'FREE_WIFI_NO_PASSWORD'. Shutting the port."
   },
   {
     id: "SW-045", title: "Replace failed optic on a redundant core uplink",
@@ -547,7 +547,7 @@ RFCS.push(
     requester: "morgan", type: "Emergency", statedRisk: "Low",
     systems: ["SIPR Access Switches"], window: "Immediately",
     rollback: "solid", testing: "yes", hiddenRisk: "Low",
-    justification: "Possible spillage incident in the S2 shop. Isolate the workstation's port now, per the incident procedure. Security officer notified."
+    justification: "Possible spillage incident in the Intel Vault. Isolate the workstation's port now, per the incident procedure. Security officer notified."
   },
   {
     id: "SW-074", title: "Replace barracks switch damaged by an energy drink",
