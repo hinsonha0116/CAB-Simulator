@@ -9,6 +9,7 @@
    - CHARACTERS:          the recurring requesters and their reactions
    - RFCS:                the pool of change requests (3-5 are dealt per meeting)
    - GENERIC_REPORTS:     fallback incident report text
+   - COLLISION_REPORTS:   two approved changes on the same system clash
    - RESUBMISSION_NOTES:  what a sent-back RFC says when it returns
    - MEETING_INTROS:      scene-setting lines shown before each meeting
    - PERFORMANCE_RATINGS: end-of-week titles and jokes
@@ -445,7 +446,7 @@ const RFCS = [
     requester: "hannah",
     type: "Standard",
     statedRisk: "Low",
-    systems: ["Self-Service Portal"],
+    systems: ["Self-Service Portal", "Identity Platform"],
     window: "Tue 12:00 - 12:10",
     rollback: "solid",
     testing: "yes",
@@ -482,7 +483,7 @@ const RFCS = [
     requester: "morgan",
     type: "Normal",
     statedRisk: "Medium",
-    systems: ["Identity Platform"],
+    systems: ["Identity Platform", "VPN Gateway"],
     window: "Mon 09:00 (everyone at once)",
     rollback: "weak",
     testing: "partial",
@@ -515,7 +516,7 @@ const RFCS = [
     requester: "kyle",
     type: "Normal",
     statedRisk: "Medium",
-    systems: ["Perimeter Firewall"],
+    systems: ["Perimeter Firewall", "VPN Gateway"],
     window: "Thu 22:00 - 23:00",
     rollback: "solid",
     testing: "partial",
@@ -555,7 +556,7 @@ const RFCS = [
     requester: "brad",
     type: "Normal",
     statedRisk: "Low",
-    systems: ["Web Platform"],
+    systems: ["Web Platform", "Checkout API"],
     window: "Tue 20:00 - 20:30",
     rollback: "weak",
     testing: "partial",
@@ -641,6 +642,27 @@ const GENERIC_REPORTS = {
     "Good call. A similar change at another company took them offline for two days. {name} has quietly gone back to the drawing board.",
     "On closer inspection, this would have broken {system}. {name} has stopped mentioning it.",
     "The vendor has just withdrawn the version {name} wanted to install. Nice instincts."
+  ]
+};
+
+// Two approved changes touched the same system in the same change window
+// and tripped over each other. Placeholders:
+//   {system} = the system they both touched
+//   {a}, {b} = the two requesters' first names
+const COLLISION_REPORTS = {
+  // Two different requesters clashed.
+  twoPeople: [
+    "{a} and {b} both worked on {system} at the same time. Each thinks the other one broke it. They are both right.",
+    "{a} restarted {system} halfway through {b}'s change. {b} restarted it back. This happened 11 times.",
+    "{a}'s change and {b}'s change were each fine on their own. Together they took {system} down for two hours. Nobody checked the change schedule.",
+    "{b} rolled back their change on {system}, which also rolled back {a}'s. {a} found out from a customer.",
+    "Two engineers, one {system}, zero communication. {a} and {b} have been asked to 'sync up'."
+  ],
+  // The same requester's two changes clashed with each other.
+  samePerson: [
+    "{a} ran both changes on {system} at once 'to save time'. It did not save time.",
+    "{a}'s second change undid {a}'s first change. {a} is now in a meeting with {a} to discuss it.",
+    "{a} forgot they already had a change running on {system}. Both failed. {a} is blaming the tooling."
   ]
 };
 

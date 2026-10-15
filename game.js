@@ -283,7 +283,58 @@ function resolveSentBack(rfc) {
     "{name} will resubmit it at a later CAB.", NO_FX);
 }
 
-// 3e. End-of-week performance rating. Checked top to bottom: the
+// 3e. COLLISIONS. Everything approved at one meeting goes into the
+//     same change window afterwards. Two approved changes that touch
+//     the same system might trip over each other.
+const COLLISION_CHANCE = 0.4;  // per pair of changes sharing a system
+const COLLISION_FX = { stability: -8, leadership: -4, audit: -3, sanity: -4 };
+
+// Which systems do two RFCs have in common? (empty list = none)
+function sharedSystems(a, b) {
+  return a.systems.filter(system => b.systems.includes(system));
+}
+
+// approvedEntries = this meeting's history entries that were approved.
+function resolveCollisions(approvedEntries) {
+  const reports = [];
+
+  // Check every PAIR once: (1st, 2nd), (1st, 3rd), (2nd, 3rd), ...
+  for (let i = 0; i < approvedEntries.length; i++) {
+    for (let j = i + 1; j < approvedEntries.length; j++) {
+      const a = approvedEntries[i].rfc;
+      const b = approvedEntries[j].rfc;
+      const shared = sharedSystems(a, b);
+      if (shared.length === 0 || Math.random() >= COLLISION_CHANCE) continue;
+
+      const samePerson = a.requester === b.requester;
+      const text = pickRandom(samePerson ? COLLISION_REPORTS.samePerson : COLLISION_REPORTS.twoPeople)
+        .replaceAll("{system}", shared[0])
+        .replaceAll("{a}", CHARACTERS[a.requester].name.split(" ")[0])
+        .replaceAll("{b}", CHARACTERS[b.requester].name.split(" ")[0]);
+
+      const report = makeReport(b, "collision", "Change collision", "bad", text, COLLISION_FX, {
+        number: "INC" + state.nextIncidentNumber++,
+        duration: "2 hours",
+        systemsHit: shared,
+        source: `Caused by ${a.id} + ${b.id} clashing in the same change window`
+      });
+      // Remember the collision on the later change's history entry.
+      // (A list, because one change can clash with several others.)
+      approvedEntries[j].collisions = (approvedEntries[j].collisions || []).concat(report);
+      reports.push(report);
+    }
+  }
+  return reports;
+}
+
+// Outages = changes that broke + collisions.
+function countOutages(entries) {
+  const brokenChanges = entries.filter(h => h.report && h.report.outcome === "outage").length;
+  const collisions = entries.reduce((total, h) => total + (h.collisions ? h.collisions.length : 0), 0);
+  return brokenChanges + collisions;
+}
+
+// 3f. End-of-week performance rating. Checked top to bottom: the
 //     first rule that matches wins. Titles and jokes live in data.js.
 function getPerformanceRating(entries) {
   const total = entries.length;
@@ -291,7 +342,7 @@ function getPerformanceRating(entries) {
   const approveRate = count("approve") / total;
   const rejectRate = count("reject") / total;
   const sendBackRate = count("sendBack") / total;
-  const outages = entries.filter(h => h.report && h.report.outcome === "outage").length;
+  const outages = countOutages(entries);
 
   if (outages >= 3) return PERFORMANCE_RATINGS.incidentFactory;
   if (rejectRate >= 0.6) return PERFORMANCE_RATINGS.wallOfNo;
@@ -400,12 +451,39 @@ function renderCard(rfc) {
       <dt>Testing evidence</dt><dd>${tag(rfc.testing, TESTING_COLOURS[rfc.testing])}</dd>
     </dl>
     <blockquote class="justification">"${rfc.justification}"</blockquote>
+    ${renderScheduleWarning(rfc)}
   `;
 
   // Reset the buttons and reaction text for the new card.
   document.getElementById("reaction").textContent = "";
   setDecisionButtonsEnabled(true);
   document.getElementById("btn-next").classList.add("hidden");
+}
+
+// "Change schedule" check: warn if this RFC touches the same system as
+// something already approved at this meeting, or later on the agenda.
+function renderScheduleWarning(rfc) {
+  const describe = other => `${other.id} (${sharedSystems(rfc, other).join(", ")})`;
+
+  const approvedClashes = decisionsThisMeeting()
+    .filter(h => h.decision === "approve" && sharedSystems(rfc, h.rfc).length > 0)
+    .map(h => describe(h.rfc));
+  const laterClashes = state.agenda.slice(state.currentIndex + 1)
+    .filter(other => sharedSystems(rfc, other).length > 0)
+    .map(describe);
+
+  if (approvedClashes.length === 0 && laterClashes.length === 0) return "";
+
+  let lines = "";
+  if (approvedClashes.length > 0) {
+    lines += `<p><strong>&#9888; Schedule conflict:</strong> already approved for the same change ` +
+      `window: ${approvedClashes.join(", ")}.</p>`;
+  }
+  if (laterClashes.length > 0) {
+    lines += `<p><strong>&#9888; Heads up:</strong> later on this agenda, touching the same ` +
+      `systems: ${laterClashes.join(", ")}.</p>`;
+  }
+  return `<div class="schedule-warning">${lines}</div>`;
 }
 
 function setDecisionButtonsEnabled(enabled) {
@@ -428,16 +506,19 @@ function describeEffects(fx) {
 
 // Build one incident report "ticket" for the consequences screen.
 function renderReport(report) {
-  const heading = report.outcome === "outage"
-    ? `${report.number} &middot; ${report.label} &middot; ${report.rfc.systems.join(", ")}`
+  // Incidents (outages, collisions) have an INC number; other reports don't.
+  const systems = (report.systemsHit || report.rfc.systems).join(", ");
+  const heading = report.number
+    ? `${report.number} &middot; ${report.label} &middot; ${systems}`
     : `${report.rfc.id} &middot; ${report.label}`;
   const duration = report.duration ? `<p class="report-meta">Duration: ${report.duration}</p>` : "";
-  const source = report.outcome === "outage" ? `Caused by ${report.rfc.id}` : "Change";
+  const source = report.source ||
+    (report.outcome === "outage" ? `Caused by ${report.rfc.id}` : "Change") + `: ${report.rfc.title}`;
 
   return `
     <article class="report ${report.style}">
       <h3>${heading}</h3>
-      <p class="report-meta">${source}: ${report.rfc.title}</p>
+      <p class="report-meta">${source}</p>
       ${duration}
       <p>${report.text}</p>
       <p class="report-fx">${describeEffects(report.fx)}</p>
@@ -446,7 +527,7 @@ function renderReport(report) {
 }
 
 function renderConsequences(reports, totalFx) {
-  const outages = reports.filter(r => r.outcome === "outage").length;
+  const outages = reports.filter(r => r.outcome === "outage" || r.outcome === "collision").length;
   const implemented = reports.filter(r => r.outcome === "outage" || r.outcome === "success").length;
 
   let intro;
@@ -479,11 +560,12 @@ const DECISION_LABELS = { approve: "Approved", reject: "Rejected", sendBack: "Se
 // Shared by the week summary and game over screen: stats + decision list.
 function renderStats(entries) {
   const count = d => entries.filter(h => h.decision === d).length;
-  const outages = entries.filter(h => h.report && h.report.outcome === "outage").length;
+  const outages = countOutages(entries);
 
   const items = entries.map(h => {
     const showResult = h.report && h.report.outcome !== "resubmit";
-    const result = showResult ? ` (${h.report.label.toLowerCase()})` : "";
+    let result = showResult ? ` (${h.report.label.toLowerCase()})` : "";
+    if (h.collisions) result += h.collisions.length === 1 ? " + collision" : ` + ${h.collisions.length} collisions`;
     return `<li><span class="when">${h.day.slice(0, 3)}</span> <strong>${h.rfc.id}</strong> ` +
       `${h.rfc.title}: ${DECISION_LABELS[h.decision]}${result}</li>`;
   }).join("");
@@ -605,8 +687,16 @@ function endMeeting() {
     if (!h.report) return; // nothing to report
 
     reports.push(h.report);
-    applyEffects(h.report.fx);
-    for (const m in h.report.fx) totalFx[m] += h.report.fx[m];
+  });
+
+  // Then check whether any approved changes clashed with each other.
+  const approved = decisionsThisMeeting().filter(h => h.decision === "approve");
+  reports.push(...resolveCollisions(approved));
+
+  // Apply every report's meter changes.
+  reports.forEach(report => {
+    applyEffects(report.fx);
+    for (const m in report.fx) totalFx[m] += report.fx[m];
   });
 
   renderConsequences(reports, totalFx);

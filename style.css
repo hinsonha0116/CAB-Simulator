@@ -162,6 +162,17 @@ button.sendback { background: var(--warn); }
 .report.good h3 { color: var(--good); }
 .report.info h3 { color: var(--muted); }
 
+/* Change schedule conflict warning on an RFC card */
+.schedule-warning {
+  margin-top: 12px;
+  padding: 6px 12px;
+  border: 1px solid var(--warn);
+  border-radius: 6px;
+  background: #fbf1dc;
+  font-size: 0.9rem;
+}
+.schedule-warning p { margin: 4px 0; }
+
 /* Banner on an RFC card that has come back */
 .return-note {
   margin: 0 0 10px;
