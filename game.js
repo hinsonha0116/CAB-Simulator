@@ -1,8 +1,8 @@
 /* =====================================================================
    CAB SIMULATOR - GAME LOGIC
    This file holds the RULES. The content (RFCs, characters) lives in
-   data.js, which is loaded before this file, so CHARACTERS and RFCS
-   are already available here.
+   data.js, which is loaded before this file, so CHARACTERS, RFCS and
+   GENERIC_REPORTS are already available here.
    ===================================================================== */
 
 // ---------------------------------------------------------------------
@@ -22,15 +22,18 @@ function resetGame() {
     },
     agenda: [...RFCS],   // a copy of the RFC list for this meeting
     currentIndex: 0,     // which RFC we're looking at (0 = first)
-    decisions: []        // a log of what the player chose
+    decisions: [],       // a log of what the player chose
+    reports: [],         // incident reports created after the meeting
+    nextIncidentNumber: 1042
   };
 }
 
 // ---------------------------------------------------------------------
-// 2. RULES - how much each decision moves the meters.
-//    For now (Milestone 1) this only looks at the VISIBLE card fields.
-//    The hidden true risk will matter in Milestone 2.
+// 2. RULES
 // ---------------------------------------------------------------------
+
+// 2a. IMMEDIATE effects of a decision, felt in the meeting room.
+//     These only look at what's VISIBLE on the card.
 function getDecisionEffects(rfc, decision) {
   // Start with "no change" for every meter, then add things up.
   const fx = { stability: 0, leadership: 0, audit: 0, sanity: 0 };
@@ -38,17 +41,15 @@ function getDecisionEffects(rfc, decision) {
   if (decision === "approve") {
     fx.leadership += 6;   // people like hearing "yes"
     fx.sanity += 2;       // and you avoided an argument
-    fx.stability -= 2;    // every change carries some risk
 
     // Approving without a proper rollback plan or testing hurts your audit trail.
     if (rfc.rollback === "missing") fx.audit -= 6;
     if (rfc.rollback === "weak") fx.audit -= 2;
-    if (rfc.testing === "none") { fx.audit -= 4; fx.stability -= 3; }
+    if (rfc.testing === "none") fx.audit -= 4;
   }
 
   if (decision === "reject") {
     fx.leadership -= 6;   // someone important wanted this
-    fx.stability += 2;    // nothing changed, nothing broke
     fx.sanity -= 3;       // now you have to explain yourself
 
     // Rejecting an Emergency change is a big deal.
@@ -64,6 +65,75 @@ function getDecisionEffects(rfc, decision) {
   }
 
   return fx;
+}
+
+// 2b. What ACTUALLY happens to an approved change after the meeting.
+//     This is where the HIDDEN true risk matters.
+
+// Base chance of an outage for each hidden risk level (0.10 = 10%).
+const OUTAGE_CHANCE = { Low: 0.10, Medium: 0.35, High: 0.70 };
+
+// Good testing makes an outage LESS LIKELY; no testing makes it MORE likely.
+const TESTING_MODIFIER = { yes: -0.10, partial: 0, none: +0.15 };
+
+// The rollback plan decides how BAD an outage is.
+const OUTAGE_SEVERITY = {
+  solid: {
+    label: "Minor", duration: "25 minutes",
+    fx: { stability: -5, leadership: -2, audit: 0, sanity: -2 }
+  },
+  weak: {
+    label: "Major", duration: "3 hours",
+    fx: { stability: -12, leadership: -6, audit: -2, sanity: -5 }
+  },
+  missing: {
+    label: "Critical", duration: "most of the night",
+    fx: { stability: -20, leadership: -10, audit: -6, sanity: -8 }
+  }
+};
+
+// A change that goes well makes everyone a little happier.
+const SUCCESS_FX = { stability: 3, leadership: 2, audit: 0, sanity: 1 };
+
+function chanceOfOutage(rfc) {
+  const chance = OUTAGE_CHANCE[rfc.hiddenRisk] + TESTING_MODIFIER[rfc.testing];
+  return Math.max(0.02, Math.min(0.95, chance)); // never 0% or 100%
+}
+
+// Roll the dice for one approved RFC and build its incident report.
+function resolveApprovedChange(rfc) {
+  const isOutage = Math.random() < chanceOfOutage(rfc);
+  const system = rfc.systems[0];
+
+  if (isOutage) {
+    const severity = OUTAGE_SEVERITY[rfc.rollback];
+    return {
+      number: "INC" + state.nextIncidentNumber++,
+      rfc,
+      outcome: "outage",
+      label: severity.label + " outage",
+      duration: severity.duration,
+      text: fillIn(rfc.outageReport || pickRandom(GENERIC_REPORTS.outage), system),
+      fx: severity.fx
+    };
+  }
+
+  return {
+    number: null, // successful changes don't get an incident number
+    rfc,
+    outcome: "success",
+    label: "Successful change",
+    text: fillIn(rfc.successReport || pickRandom(GENERIC_REPORTS.success), system),
+    fx: SUCCESS_FX
+  };
+}
+
+// Small helpers
+function pickRandom(list) {
+  return list[Math.floor(Math.random() * list.length)];
+}
+function fillIn(text, system) {
+  return text.replaceAll("{system}", system);
 }
 
 // Apply a set of meter changes, keeping every meter between 0 and 100.
@@ -151,6 +221,54 @@ function setDecisionButtonsEnabled(enabled) {
   });
 }
 
+const METER_NAMES = {
+  stability: "Stability", leadership: "Leadership", audit: "Audit", sanity: "Sanity"
+};
+
+// Turn { stability: -5, leadership: 2 } into "Stability -5, Leadership +2".
+function describeEffects(fx) {
+  return Object.keys(fx)
+    .filter(m => fx[m] !== 0)
+    .map(m => `${METER_NAMES[m]} ${fx[m] > 0 ? "+" : ""}${fx[m]}`)
+    .join(", ");
+}
+
+// Build one incident report "ticket" for the consequences screen.
+function renderReport(report) {
+  const heading = report.outcome === "outage"
+    ? `${report.number} &middot; ${report.label} &middot; ${report.rfc.systems.join(", ")}`
+    : `${report.rfc.id} &middot; ${report.label}`;
+  const duration = report.duration ? `<p class="report-meta">Duration: ${report.duration}</p>` : "";
+  const source = report.outcome === "outage" ? `Caused by ${report.rfc.id}` : "Change";
+
+  return `
+    <article class="report ${report.outcome}">
+      <h3>${heading}</h3>
+      <p class="report-meta">${source}: ${report.rfc.title}</p>
+      ${duration}
+      <p>${report.text}</p>
+      <p class="report-fx">${describeEffects(report.fx)}</p>
+    </article>
+  `;
+}
+
+function renderConsequences(totalFx) {
+  const list = document.getElementById("reports");
+  const outages = state.reports.filter(r => r.outcome === "outage").length;
+
+  let intro;
+  if (state.reports.length === 0) {
+    intro = "You approved nothing. Nothing broke. Nothing improved. The business is unsure what you're for.";
+  } else if (outages === 0) {
+    intro = "A quiet night. Every approved change went in cleanly.";
+  } else {
+    intro = `The overnight change window produced ${outages} incident${outages > 1 ? "s" : ""}.`;
+  }
+
+  list.innerHTML = `<p>${intro}</p>` + state.reports.map(renderReport).join("");
+  renderMeters(totalFx);
+}
+
 const DECISION_LABELS = { approve: "Approved", reject: "Rejected", sendBack: "Sent back" };
 
 function renderEndScreen(gameOver) {
@@ -163,12 +281,22 @@ function renderEndScreen(gameOver) {
     summary.innerHTML = `<p>${GAME_OVER_MESSAGES[deadMeter]}</p>`;
   } else {
     title.textContent = "Meeting adjourned";
-    summary.innerHTML = "<p>You survived the Tuesday CAB. Here's what you decided:</p>";
+    summary.innerHTML = "<p>You survived the Tuesday CAB.</p>";
   }
 
-  const items = state.decisions
-    .map(d => `<li><strong>${d.rfc.id}</strong> ${d.rfc.title}: ${DECISION_LABELS[d.decision]}</li>`)
-    .join("");
+  const outages = state.reports.filter(r => r.outcome === "outage").length;
+  const count = d => state.decisions.filter(x => x.decision === d).length;
+  summary.innerHTML += `
+    <p><strong>${state.decisions.length}</strong> changes processed:
+       ${count("approve")} approved, ${count("reject")} rejected, ${count("sendBack")} sent back.
+       <br><strong>${outages}</strong> outage${outages === 1 ? "" : "s"} caused.</p>
+  `;
+
+  const items = state.decisions.map(d => {
+    const report = state.reports.find(r => r.rfc === d.rfc);
+    const result = report ? ` (${report.label.toLowerCase()})` : "";
+    return `<li><strong>${d.rfc.id}</strong> ${d.rfc.title}: ${DECISION_LABELS[d.decision]}${result}</li>`;
+  }).join("");
   summary.innerHTML += `<ul>${items}</ul>`;
 }
 
@@ -218,17 +346,41 @@ function makeDecision(decision) {
 function nextCard() {
   state.currentIndex++;
   if (state.currentIndex >= state.agenda.length) {
-    renderEndScreen(false);
-    showScreen("screen-end");
+    endMeeting();
   } else {
     renderMeters();
     renderCard(state.agenda[state.currentIndex]);
   }
 }
 
+// The meeting is over: roll the dice for every approved change.
+function endMeeting() {
+  const totalFx = { stability: 0, leadership: 0, audit: 0, sanity: 0 };
+
+  state.decisions
+    .filter(d => d.decision === "approve")
+    .forEach(d => {
+      const report = resolveApprovedChange(d.rfc);
+      state.reports.push(report);
+      applyEffects(report.fx);
+      for (const m in report.fx) totalFx[m] += report.fx[m];
+    });
+
+  renderConsequences(totalFx);
+  showScreen("screen-consequences");
+}
+
+// After reading the incident reports, go to the summary (or game over).
+function afterConsequences() {
+  renderMeters();
+  renderEndScreen(isGameOver());
+  showScreen("screen-end");
+}
+
 // Connect buttons to the functions above.
 document.getElementById("btn-start").addEventListener("click", startMeeting);
 document.getElementById("btn-next").addEventListener("click", nextCard);
+document.getElementById("btn-continue").addEventListener("click", afterConsequences);
 document.getElementById("btn-restart").addEventListener("click", startMeeting);
 document.querySelectorAll("#decision-buttons button").forEach(button => {
   button.addEventListener("click", () => makeDecision(button.dataset.decision));

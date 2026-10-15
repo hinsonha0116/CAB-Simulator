@@ -138,5 +138,26 @@ button.sendback { background: var(--warn); }
 }
 #reaction { min-height: 1.5em; font-style: italic; }
 
+/* ---------- Incident reports ---------- */
+.report {
+  border: 1px solid var(--border);
+  border-left: 6px solid var(--good);
+  border-radius: 6px;
+  padding: 10px 14px;
+  margin: 0 0 12px;
+  background: #faf9f6;
+}
+.report.outage { border-left-color: var(--bad); }
+.report h3 {
+  margin: 0 0 4px;
+  font-size: 1rem;
+  font-family: Consolas, monospace;
+}
+.report.outage h3 { color: var(--bad); }
+.report.success h3 { color: var(--good); }
+.report p { margin: 4px 0; }
+.report-meta { color: var(--muted); font-size: 0.85rem; }
+.report-fx { font-size: 0.85rem; font-weight: 600; }
+
 /* ---------- End screen ---------- */
 #end-summary ul { padding-left: 20px; }
