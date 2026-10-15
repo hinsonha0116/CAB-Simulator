@@ -340,6 +340,12 @@ kbd {
 .status-banner { background: var(--accent-soft); color: var(--accent); }
 
 /* ---------- Meeting intro ---------- */
+.tip {
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: var(--accent-soft);
+  font-size: 0.92rem;
+}
 .note { color: var(--good); font-weight: 600; }
 .alert { color: var(--bad); font-weight: 600; }
 .note:empty, .alert:empty { display: none; }
@@ -409,6 +415,85 @@ kbd {
   color: var(--muted);
 }
 
+/* ---------- Standard Change Catalogue ---------- */
+/* "Ghost" buttons: outlined instead of filled, for secondary actions */
+button.ghost {
+  background: var(--panel);
+  color: var(--accent);
+  border: 1px solid var(--border);
+}
+button.ghost kbd { border-color: var(--border); }
+header #btn-catalogue { margin-left: auto; flex: none; font-size: 0.9rem; padding: 8px 12px; }
+
+/* Small "View SC-05" button on RFC cards */
+button.link {
+  background: none;
+  color: var(--accent);
+  border: none;
+  padding: 0 4px;
+  text-decoration: underline;
+  font-weight: 600;
+}
+.catalogue-missing { color: var(--bad); font-weight: 600; }
+
+dialog#catalogue {
+  width: min(720px, 100% - 24px);
+  max-height: 85vh;
+  padding: 0 20px 20px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--panel);
+  color: var(--text);
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+}
+dialog#catalogue::backdrop { background: rgba(0, 0, 0, 0.45); }
+.catalogue-header {
+  position: sticky;   /* the title and Close button stay put while scrolling */
+  top: 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 0 8px;
+  background: var(--panel);
+}
+.catalogue-header h2 { margin: 0; font-size: 1.25rem; }
+.catalogue-header button { margin-left: auto; }
+.catalogue-intro {
+  margin: 0 0 14px;
+  padding: 10px 12px;
+  background: var(--accent-soft);
+  border-radius: 8px;
+  font-size: 0.92rem;
+}
+
+.catalogue-entry {
+  border: 1px solid var(--border);
+  border-left: 5px solid var(--good);
+  border-radius: 8px;
+  padding: 10px 14px;
+  margin-bottom: 12px;
+  background: var(--panel-soft);
+}
+.catalogue-entry h3 { margin: 0 0 4px; font-size: 1.05rem; }
+.catalogue-entry .entry-id { font-family: Consolas, monospace; color: var(--muted); margin-right: 6px; }
+.catalogue-entry p { margin: 4px 0; }
+.catalogue-entry h4 {
+  margin: 10px 0 2px;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+}
+.catalogue-entry ul { margin: 2px 0; padding-left: 20px; }
+.catalogue-entry .conditions li::marker { content: "\2713  "; color: var(--good); }
+.catalogue-entry .not-covered li::marker { content: "\2717  "; color: var(--bad); }
+/* The entry you jumped to from an RFC card */
+.catalogue-entry.highlight {
+  border-color: var(--accent);
+  border-left-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
 /* ---------- Animations ---------- */
 @keyframes fade-in {
   from { opacity: 0; transform: translateY(4px); }
@@ -429,6 +514,9 @@ kbd {
 /* ---------- Small screens (phones) ---------- */
 @media (max-width: 600px) {
   body { padding: 10px; }
+  header { flex-wrap: wrap; }
+  header #btn-catalogue { margin-left: 0; width: 100%; }
+  dialog#catalogue { padding: 0 12px 12px; max-height: 90vh; }
   h1 { font-size: 1.35rem; }
   .tagline { font-size: 0.85rem; }
   /* Compact meters so they don't take over the screen */

@@ -58,6 +58,22 @@ The fun comes from the **visible fields hinting at the hidden risk, but not alwa
 - **Hidden trap:** everything *looks* fine, but the hidden risk is Medium because of something
   nobody knew (e.g. the FTP server the bank secretly uses).
 
+### Standard changes and the catalogue
+
+If `type` is `"Standard"`, add a `catalogueId` pointing at an entry in
+`STANDARD_CHANGE_CATALOGUE` (at the bottom of `data.js`):
+
+```js
+    type: "Standard",
+    catalogueId: "SC-05",   // the card shows this entry with a "Check conditions" button
+```
+
+The player can compare the RFC against that entry's conditions. A great
+trap is a "Standard" RFC whose justification quietly breaks one of the
+conditions (like DeployBot's major version with skipped tests). Leave out
+`catalogueId` entirely and the card warns "No catalogue entry given",
+which is another red flag.
+
 ### Placeholders in report text
 
 | Write | Becomes |
@@ -119,6 +135,20 @@ cause **unauthorized changes**, add their key to `suspects` in the
 | `MEETING_INTROS` | Scene-setting lines before each meeting |
 | `PERFORMANCE_RATINGS` | End-of-week titles and jokes |
 | `EVENTS` | Random events between meetings (add more text variants freely) |
+| `STANDARD_CHANGE_CATALOGUE` | Pre-authorized change types and their conditions (the in-game reference) |
+
+### Adding a catalogue entry
+
+```js
+  {
+    id: "SC-08",                       // unique; RFCs point at it with catalogueId
+    name: "Password policy reminder email",
+    description: "What kind of change this is.",
+    conditions: ["Every one of these must be true", "..."],
+    notCovered: ["Things that make it a Normal change instead"],
+    procedure: "The short, documented steps."
+  },
+```
 
 ## Changing the rules (numbers)
 

@@ -75,6 +75,21 @@ function checkData() {
     if (dataProblems.length > before) brokenRfcs.push(rfc);
   });
 
+  const catalogueIds = [];
+  STANDARD_CHANGE_CATALOGUE.forEach((entry, index) => {
+    const where = `Catalogue entry ${entry.id || "#" + (index + 1)}`;
+    ["id", "name", "description", "conditions", "notCovered", "procedure"].forEach(f => {
+      if (entry[f] === undefined) dataProblems.push(`${where}: missing ${f}`);
+    });
+    if (catalogueIds.includes(entry.id)) dataProblems.push(`${where}: another entry already uses this id`);
+    catalogueIds.push(entry.id);
+  });
+  RFCS.forEach(rfc => {
+    if (rfc.catalogueId && !catalogueIds.includes(rfc.catalogueId)) {
+      dataProblems.push(`RFC ${rfc.id}: catalogueId "${rfc.catalogueId}" isn't in STANDARD_CHANGE_CATALOGUE`);
+    }
+  });
+
   EVENTS.forEach(event => {
     const where = `Event "${event.id}"`;
     if (!event.title || !event.text || !event.choices || event.choices.length === 0) {
@@ -592,6 +607,7 @@ function renderMeetingIntro(extraNote = "") {
   // The "how to play" text only needs showing at the very start.
   const isFirstMeeting = state.week === 1 && state.meetingIndex === 0;
   document.getElementById("intro-rules").classList.toggle("hidden", !isFirstMeeting);
+  document.getElementById("intro-tip").classList.toggle("hidden", !isFirstMeeting);
 }
 
 // Pick a colour for a field value: green = good, yellow = meh, red = bad.
@@ -656,6 +672,7 @@ function renderCard(rfc) {
       <dt>Window</dt>          <dd>${rfc.window}</dd>
       <dt>Rollback plan</dt>   <dd>${tag(rfc.rollback, ROLLBACK_COLOURS[rfc.rollback])}</dd>
       <dt>Testing evidence</dt><dd>${tag(rfc.testing, TESTING_COLOURS[rfc.testing])}</dd>
+      ${renderCatalogueField(rfc)}
     </dl>
     <blockquote class="justification">"${rfc.justification}"</blockquote>
     ${renderScheduleWarning(rfc)}
@@ -1039,6 +1056,69 @@ document.querySelectorAll("#decision-buttons button").forEach(button => {
   button.addEventListener("click", () => makeDecision(button.dataset.decision));
 });
 
+// ---------------------------------------------------------------------
+// STANDARD CHANGE CATALOGUE - a reference the player can open any time.
+// ---------------------------------------------------------------------
+function findCatalogueEntry(id) {
+  return STANDARD_CHANGE_CATALOGUE.find(entry => entry.id === id);
+}
+
+// The extra line on Standard RFC cards: which catalogue entry it claims.
+function renderCatalogueField(rfc) {
+  if (rfc.type !== "Standard") return "";
+  const entry = findCatalogueEntry(rfc.catalogueId);
+  const value = entry
+    ? `${entry.id} ${entry.name} <button class="link" data-catalogue="${entry.id}">Check conditions</button>`
+    : `<span class="catalogue-missing">&#9888; No catalogue entry given</span>
+       <button class="link" data-catalogue="">Open catalogue</button>`;
+  return `<dt>Catalogue entry</dt><dd>${value}</dd>`;
+}
+
+// Build the list of entries inside the catalogue pop-up.
+function renderCatalogue(highlightId) {
+  const list = items => items.map(item => `<li>${item}</li>`).join("");
+  document.getElementById("catalogue-entries").innerHTML = STANDARD_CHANGE_CATALOGUE.map(entry => `
+    <article class="catalogue-entry ${entry.id === highlightId ? "highlight" : ""}" id="entry-${entry.id}">
+      <h3><span class="entry-id">${entry.id}</span>${entry.name}</h3>
+      <p>${entry.description}</p>
+      <h4>Conditions (all must be true)</h4>
+      <ul class="conditions">${list(entry.conditions)}</ul>
+      <h4>Not covered: raise a Normal change instead</h4>
+      <ul class="not-covered">${list(entry.notCovered)}</ul>
+      <h4>Procedure</h4>
+      <p>${entry.procedure}</p>
+    </article>
+  `).join("");
+}
+
+// Open the catalogue. If an entry id is given, highlight it and scroll to it.
+function openCatalogue(highlightId) {
+  renderCatalogue(highlightId);
+  const dialog = document.getElementById("catalogue");
+  dialog.showModal();
+  const target = highlightId && document.getElementById(`entry-${highlightId}`);
+  if (target) target.scrollIntoView({ block: "center" });
+  else dialog.scrollTop = 0;
+}
+
+document.getElementById("btn-catalogue").addEventListener("click", () => openCatalogue());
+document.getElementById("btn-catalogue-close").addEventListener("click", () => {
+  document.getElementById("catalogue").close();
+});
+// Clicking the dark area around the pop-up also closes it.
+document.getElementById("catalogue").addEventListener("click", event => {
+  const box = event.currentTarget.getBoundingClientRect();
+  const outside = event.clientX < box.left || event.clientX > box.right ||
+                  event.clientY < box.top || event.clientY > box.bottom;
+  if (outside) event.currentTarget.close();
+});
+// "Check conditions" buttons on RFC cards. The card is rebuilt for every
+// RFC, so we listen on the card container instead of each button.
+document.getElementById("rfc-card").addEventListener("click", event => {
+  const button = event.target.closest("[data-catalogue]");
+  if (button) openCatalogue(button.dataset.catalogue);
+});
+
 // Keyboard shortcuts: A / R / S to decide, Enter to press the screen's
 // main "continue" button.
 const CONTINUE_BUTTONS = ["btn-start", "btn-next", "btn-continue", "btn-event-continue",
@@ -1046,6 +1126,14 @@ const CONTINUE_BUTTONS = ["btn-start", "btn-next", "btn-continue", "btn-event-co
 
 document.addEventListener("keydown", event => {
   if (event.ctrlKey || event.metaKey || event.altKey) return;
+
+  // While the catalogue is open, the game's shortcuts are paused
+  // (Escape closes it - the browser handles that for us).
+  if (document.getElementById("catalogue").open) return;
+  if (event.key.toLowerCase() === "c") {
+    openCatalogue();
+    return;
+  }
 
   const decision = { a: "approve", r: "reject", s: "sendBack" }[event.key.toLowerCase()];
   const decisionButton = decision && document.querySelector(`[data-decision=${decision}]`);

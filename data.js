@@ -17,6 +17,7 @@
    - MEETING_INTROS:      scene-setting lines shown before each meeting
    - PERFORMANCE_RATINGS: end-of-week titles and jokes
    - EVENTS:              random events between meetings (audits, freezes...)
+   - STANDARD_CHANGE_CATALOGUE: pre-authorized change types (in-game reference)
 
    HOW TO ADD A NEW CHANGE REQUEST (RFC)
    1. Copy one of the { ... } blocks inside RFCS below.
@@ -28,6 +29,8 @@
         testing:     "yes" | "partial" | "none"
         hiddenRisk:  "Low" | "Medium" | "High"   (the TRUTH - player never sees it)
         requester:   must match a key in CHARACTERS (e.g. "dave")
+        catalogueId: (Standard changes only) an id from
+                     STANDARD_CHANGE_CATALOGUE, e.g. "SC-05"
 
    OPTIONAL incident report text (shown after the meeting if approved):
         outageReport:  what happened if the change broke something
@@ -311,6 +314,7 @@ const RFCS = [
     title: "Replace failed power supply in core switch (hot-swap)",
     requester: "linda",
     type: "Standard",
+    catalogueId: "SC-01",
     statedRisk: "Low",
     systems: ["Core Network"],
     window: "Wed 07:00 - 07:30",
@@ -414,6 +418,7 @@ const RFCS = [
     title: "Renew the TLS certificate on the public website",
     requester: "morgan",
     type: "Standard",
+    catalogueId: "SC-02",
     statedRisk: "Low",
     systems: ["Web Platform"],
     window: "Thu 08:00 - 08:15",
@@ -497,6 +502,7 @@ const RFCS = [
     title: "Reword the password reset page",
     requester: "hannah",
     type: "Standard",
+    catalogueId: "SC-03",
     statedRisk: "Low",
     systems: ["Self-Service Portal", "Identity Platform"],
     window: "Tue 12:00 - 12:10",
@@ -710,6 +716,7 @@ const RFCS = [
     title: "Automated release: Web Platform v4.12.3",
     requester: "deploybot",
     type: "Standard",
+    catalogueId: "SC-05",
     statedRisk: "Low",
     systems: ["Web Platform"],
     window: "Tue 14:00 (auto-scheduled)",
@@ -727,6 +734,7 @@ const RFCS = [
     title: "Automated release: Checkout API v2.0.0 (major version)",
     requester: "deploybot",
     type: "Standard",
+    catalogueId: "SC-05",
     statedRisk: "Low",
     systems: ["Checkout API"],
     window: "Thu 14:00 (auto-scheduled)",
@@ -823,6 +831,7 @@ const RFCS = [
     title: "Monthly patching of the database servers",
     requester: "priya",
     type: "Standard",
+    catalogueId: "SC-04",
     statedRisk: "Low",
     systems: ["Orders Database", "Customer Database"],
     window: "Wed 23:00 - 01:00",
@@ -978,6 +987,133 @@ const EVENTS = [
         result: "You roll it back and run a proper review. A short outage and a lot of grumbling, but the process holds. {name} has been 'reminded' of the change policy."
       }
     ]
+  }
+];
+
+/* ---------------------------------------------------------------------
+   STANDARD CHANGE CATALOGUE
+   In ITIL, a standard change is low-risk, well understood, and follows
+   a documented procedure, so it is PRE-AUTHORIZED. The catalogue lists
+   which kinds of change qualify and the conditions they must meet.
+
+   The player can open this at any time. A Standard RFC links to an entry
+   with  catalogueId: "SC-01"  so the player can check whether it really
+   meets the conditions (some don't!).
+
+   Each entry has:
+     id, name:     shown in the catalogue and on RFC cards
+     description:  what the change is
+     conditions:   ALL must be true for it to count as standard
+     notCovered:   things that make it a Normal change instead
+     procedure:    a short summary of the documented steps
+   --------------------------------------------------------------------- */
+const STANDARD_CHANGE_CATALOGUE = [
+  {
+    id: "SC-01",
+    name: "Hot-swap of a failed redundant hardware part",
+    description: "Replace a failed power supply, fan or disk in a device that has a working spare running alongside it.",
+    conditions: [
+      "The device has redundancy and the remaining part is healthy",
+      "The part is hot-swappable (no power-down or reboot needed)",
+      "It's a like-for-like, vendor-approved replacement",
+      "No configuration changes"
+    ],
+    notCovered: [
+      "Replacing the last working part (the device would go down)",
+      "Anything that needs a reboot or firmware update"
+    ],
+    procedure: "Confirm the spare is healthy, swap the part, check alerts clear, update the asset record."
+  },
+  {
+    id: "SC-02",
+    name: "TLS certificate renewal",
+    description: "Renew an existing certificate before it expires, for the same domain names.",
+    conditions: [
+      "Same certificate authority and same domain names",
+      "Installed before the current certificate expires",
+      "Automated check confirms the new certificate is valid"
+    ],
+    notCovered: [
+      "Adding or removing domain names",
+      "Changing certificate authority or key type"
+    ],
+    procedure: "Request renewal, install in the change window, run the validation check, keep the old certificate for rollback."
+  },
+  {
+    id: "SC-03",
+    name: "Self-service portal wording update",
+    description: "Change text, labels or help content on the self-service portal.",
+    conditions: [
+      "Wording or images only",
+      "No change to code, workflows or permissions",
+      "Reviewed by the service desk before publishing"
+    ],
+    notCovered: [
+      "New forms, buttons that do something new, or workflow changes"
+    ],
+    procedure: "Edit in the content tool, preview, get service desk sign-off, publish. The previous version is kept automatically."
+  },
+  {
+    id: "SC-04",
+    name: "Monthly security patching (servers and databases)",
+    description: "Apply the vendor's regular monthly patches.",
+    conditions: [
+      "Vendor's routine monthly patches only",
+      "Applied in staging first in the same month",
+      "Rolling, one server at a time, so the service stays up",
+      "No major version upgrades"
+    ],
+    notCovered: [
+      "Major version upgrades",
+      "Emergency out-of-cycle patches (use the Emergency process)"
+    ],
+    procedure: "Patch staging, verify, then patch production one node at a time, checking health between each."
+  },
+  {
+    id: "SC-05",
+    name: "Automated minor or patch release",
+    description: "A software release deployed by the automated pipeline.",
+    conditions: [
+      "Minor or patch version only (e.g. 4.12.3 → 4.12.4 or 4.13.0), never a major version (5.0.0)",
+      "ALL automated tests pass, and none are skipped",
+      "Automatic rollback is enabled and tested",
+      "No irreversible database changes"
+    ],
+    notCovered: [
+      "Major versions (x.0.0)",
+      "Releases with skipped or failing tests",
+      "Database migrations that can't be undone"
+    ],
+    procedure: "The pipeline runs tests, deploys to a small share of traffic first, watches error rates, then rolls out fully or rolls back automatically."
+  },
+  {
+    id: "SC-06",
+    name: "Mailbox quota increase",
+    description: "Increase a user's mailbox size within the approved storage tiers.",
+    conditions: [
+      "New size is within the approved tier limits",
+      "Requested through the service desk"
+    ],
+    notCovered: [
+      "Going above the top tier",
+      "Changes to mail routing or retention policy"
+    ],
+    procedure: "Service desk applies the new quota from the admin console and confirms with the user."
+  },
+  {
+    id: "SC-07",
+    name: "Add a firewall rule from an approved template",
+    description: "Open a connection between two internal systems using a pre-approved rule template.",
+    conditions: [
+      "Uses an approved template exactly",
+      "Internal systems only, never the internet",
+      "Expires automatically after 12 months unless renewed"
+    ],
+    notCovered: [
+      "Rules that allow traffic from the internet",
+      "Custom rules that don't match a template"
+    ],
+    procedure: "Fill in the template, the network team applies it, connectivity is tested, the rule is logged."
   }
 ];
 

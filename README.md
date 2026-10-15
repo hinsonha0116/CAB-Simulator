@@ -23,6 +23,9 @@ request (RFC), choose **Approve**, **Reject**, or **Send Back for More Info**
   change window can clash. Cards warn you about schedule conflicts.
 - **Random events** between meetings: surprise audits, change freezes,
   pressure calls from leadership and discovered unauthorized changes.
+- **Standard Change Catalogue:** open it any time (button at the top, or
+  press **C**) to check whether a "Standard" change really meets the
+  conditions for pre-authorization.
 - **End of week:** a summary with a performance rating, from "Actually
   Pretty Good At This" to "Chief Incident Officer".
 

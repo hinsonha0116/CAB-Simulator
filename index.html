@@ -13,6 +13,9 @@
       <h1>CAB Simulator</h1>
       <p class="tagline">You are the Chair of the Change Advisory Board. Good luck.</p>
     </div>
+    <button id="btn-catalogue" class="ghost" title="Standard Change Catalogue (C)">
+      &#128216; Standard Change Catalogue<kbd>C</kbd>
+    </button>
   </header>
 
   <!-- The four meters. game.js fills in the numbers and bar widths. -->
@@ -52,6 +55,9 @@
         <strong>Send Back</strong> for more info. Approved changes get implemented after the
         meeting, and that's when you find out how risky they really were.
         If any meter hits 0, you're done.</p>
+      <p id="intro-tip" class="tip">Tip: "Standard" changes are pre-authorized, but only if they
+        meet their entry in the <strong>Standard Change Catalogue</strong> (button at the top, or
+        press C). Some requesters stretch the definition.</p>
       <p id="intro-note" class="note"></p>
       <p id="intro-alert" class="alert"></p>
       <button id="btn-start" class="primary">Call the meeting to order</button>
@@ -102,6 +108,22 @@
       <button id="btn-restart" class="primary">Play again</button>
     </section>
   </main>
+
+  <!-- Standard Change Catalogue: a pop-up you can open any time.
+       <dialog> is built into browsers; Escape closes it. -->
+  <dialog id="catalogue" aria-labelledby="catalogue-title">
+    <div class="catalogue-header">
+      <h2 id="catalogue-title">&#128216; Standard Change Catalogue</h2>
+      <button id="btn-catalogue-close" class="ghost" aria-label="Close catalogue">Close</button>
+    </div>
+    <p class="catalogue-intro">
+      <strong>Standard changes are pre-authorized.</strong> They're low-risk, well understood,
+      and follow a documented procedure, so they don't really need CAB at all. But a change
+      only counts as standard if it meets <em>every</em> condition of its catalogue entry.
+      If it doesn't, it's a Normal change in disguise and deserves a proper look.
+    </p>
+    <div id="catalogue-entries"></div>
+  </dialog>
 
   <!-- Order matters: data first, then the logic that uses it. -->
   <script src="data.js"></script>
