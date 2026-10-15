@@ -1,41 +1,52 @@
 # How to add scenarios
 
-All of the game's content lives in **`data.js`**. You never need to touch
-`game.js` to add change requests, characters or event text.
+All of the game's content lives in **`data.js`** and the **`data/`** folder.
+You never need to touch `game.js` to add change requests, characters or
+event text.
 
-**The workflow:** edit `data.js`, save, refresh the browser. If you made a
+**The workflow:** edit a data file, save, refresh the browser. If you made a
 typo, a red box at the top of the game tells you exactly what's wrong.
+
+| File | What's in it |
+|---|---|
+| `data/rfcs-firewalls.js` | Firewall changes, ids `FW-001`... |
+| `data/rfcs-routers.js` | Router changes, ids `RT-001`... |
+| `data/rfcs-switches.js` | Switch changes, ids `SW-001`... |
+| `data/rfcs-servers.js` | Server changes, ids `SV-001`... |
+| `data/rfcs-software.js` | Software updates, ids `UP-001`... |
+| `data.js` | Characters, report text, events, ratings, the Standard Change Catalogue |
 
 ---
 
 ## Add a change request (RFC)
 
-1. Open `data.js` and find `const RFCS = [`.
+1. Open the file for the right category (e.g. `data/rfcs-switches.js`).
 2. Copy an existing RFC, everything from its `{` to its `},`.
-3. Paste it just before the `];` that ends the list.
-4. Give it a **new, unique id** (e.g. `CHG0028`) and change the text.
+3. Paste it just before the `);` at the very end of the file.
+4. Give it a **new, unique id** with the file's prefix (e.g. `SW-091`) and change the text.
 
 ```js
   {
-    id: "CHG0028",
-    title: "Replace the office Wi-Fi access points",
-    requester: "linda",            // must be a key from CHARACTERS
-    type: "Normal",                // Standard | Normal | Emergency
-    statedRisk: "Low",             // what the requester CLAIMS: Low | Medium | High
-    systems: ["Office Wi-Fi"],     // a list, even if there's only one
-    window: "Sat 07:00 - 09:00",   // free text, shown on the card
-    rollback: "solid",             // solid | weak | missing
-    testing: "partial",            // yes | partial | none
-    justification:
-      "The current access points are older than some of our interns. " +
-      "Tested one floor last week.",
-    hiddenRisk: "Medium",          // the TRUTH. The player never sees this.
+    id: "SW-091", title: "Replace the switch in the Range Control tower",
+    requester: "okafor",                  // must be a key from CHARACTERS
+    type: "Normal",                       // Standard | Normal | Emergency
+    statedRisk: "Low",                    // what the requester CLAIMS: Low | Medium | High
+    systems: ["Range Control Switches"],  // a list, even if there's only one
+    window: "Sat 0700-0900",              // free text, shown on the card
+    rollback: "solid",                    // solid | weak | missing
+    testing: "partial",                   // yes | partial | none
+    hiddenRisk: "Medium",                 // the TRUTH. The player never sees this.
+    justification: "The tower switch is 12 years old and drops out in the heat. New one tested on the bench.",
 
     // Optional extras:
     outageReport: "What the incident report says if it breaks things.",
     successReport: "What happens if it goes fine."
   },
 ```
+
+The **id prefix decides the category** (`FW`, `RT`, `SW`, `SV`, `UP`). The
+category picks which generic incident reports are used when an RFC doesn't
+have its own `outageReport` / `successReport`.
 
 ### What each field does in the game
 
@@ -45,18 +56,19 @@ typo, a red box at the top of the game tells you exactly what's wrong.
 | `testing` | Shifts that chance: `yes` −10%, `none` +15%. |
 | `rollback` | How *bad* an outage is: `solid` minor, `weak` major, `missing` critical. |
 | `statedRisk` | Only what the player sees. Make it differ from `hiddenRisk` to create a trap! |
-| `systems` | Two approved changes sharing a system at one meeting may **collide**. |
-| `type` | Emergency changes are allowed during a change freeze. Rejecting one costs extra. |
+| `systems` | Two approved changes sharing a system at one meeting may **collide**. Reuse the existing system names exactly (e.g. `"Core Switch Stack"`) so collisions work. |
+| `type` | Emergency changes are allowed during a change freeze. Rejecting or holding one costs extra. |
 
 ### Writing good scenarios
 
 The fun comes from the **visible fields hinting at the hidden risk, but not always honestly.**
 
-- **Honest and good:** solid rollback, real testing, low hidden risk (e.g. Priya's changes).
-- **Overconfident:** says "Low", but testing is partial and hidden risk is High (e.g. Dave).
-- **Scary but well-prepared:** says "High" honestly, with solid rollback and testing, so the hidden risk is only Medium.
+- **Honest and good:** solid rollback, real testing, low hidden risk (e.g. CW2 Jackson's changes).
+- **Overconfident:** says "Low", but testing is none and hidden risk is High (e.g. SSG Kowalski).
+- **Scary but well-prepared:** says "High" honestly, with solid rollback and testing, so the hidden risk is only Medium (e.g. MAJ Albright).
 - **Hidden trap:** everything *looks* fine, but the hidden risk is Medium because of something
-  nobody knew (e.g. the FTP server the bank secretly uses).
+  nobody knew (e.g. the "empty" building where the chaplain moved in).
+- **Pressure from above:** the Colonel's requests are rarely tested and often risky, but rejecting them hurts Leadership.
 
 ### Standard changes and the catalogue
 
@@ -64,36 +76,34 @@ If `type` is `"Standard"`, add a `catalogueId` pointing at an entry in
 `STANDARD_CHANGE_CATALOGUE` (at the bottom of `data.js`):
 
 ```js
-    type: "Standard",
-    catalogueId: "SC-05",   // the card shows this entry with a "Check conditions" button
+    type: "Standard", catalogueId: "SC-07",
 ```
 
 The player can compare the RFC against that entry's conditions. A great
 trap is a "Standard" RFC whose justification quietly breaks one of the
-conditions (like DeployBot's major version with skipped tests). Leave out
-`catalogueId` entirely and the card warns "No catalogue entry given",
-which is another red flag.
+conditions (like a "minor" firmware update that's really a major version,
+or a "hot-swap" of the only working power supply).
 
 ### Placeholders in report text
 
 | Write | Becomes |
 |---|---|
-| `{system}` | The RFC's first system, e.g. "Orders Database" |
-| `{name}` | The requester's first name, e.g. "Priya" |
+| `{system}` | The RFC's first system, e.g. "Core Switch Stack" |
+| `{name}` | The requester's short name, e.g. "SSG Kowalski" |
 
 ### Optional: what happens if it's rejected
 
 ```js
-    // If the requester escalates the rejection to leadership:
-    rejectedReport: "Brad has told the CEO that IT is 'anti-revenue'.",
+    // If the requester escalates the rejection up the chain of command:
+    rejectedReport: "The XO told the Colonel that the CAB is 'blocking the mission'.",
 
     // If the problem gets worse and it comes back as an EMERGENCY at the
     // next meeting. List only the fields that change, plus a reason.
     returnsAsEmergency: {
-      reason: "The certificate expired. Customers see a big red warning.",
-      title: "EMERGENCY: Renew EXPIRED certificate",
+      reason: "The second power supply failed. The switch is down.",
+      title: "EMERGENCY: Replace BOTH power supplies",
       window: "Immediately",
-      justification: "As predicted. In writing. Three times."
+      justification: "I did say."
     }
 ```
 
@@ -101,20 +111,23 @@ which is another red flag.
 
 ## Add a character
 
-Find `const CHARACTERS = {` and copy an existing character. The **key** (the
-word before the colon, like `linda:`) is what RFCs use as their `requester`.
+Find `const CHARACTERS = {` in `data.js` and copy an existing character.
+The **key** (the word before the colon, like `okafor:`) is what RFCs use as
+their `requester`.
 
 ```js
-  sam: {
-    name: "Sam Okoro",
-    role: "Cloud Engineer",
-    clout: "Medium",          // Low | Medium | High: how likely to escalate a rejection
-    followThrough: "High",    // Low | Medium | High: how likely to IMPROVE a sent-back RFC
+  santos: {
+    name: "SGT Ana Santos",
+    shortName: "SGT Santos",      // used in report text
+    role: "Satellite Communications NCO",
+    clout: "Low",                 // Low | Medium | High: how likely to escalate a rejection
+    followThrough: "High",        // Low | Medium | High: how likely to IMPROVE a sent-back RFC
     personality: "One sentence the player sees under their name.",
     reactions: {
       approve: "What happens right after you approve.",
       reject: "What happens right after you reject.",
-      sendBack: "What happens right after you send it back."
+      sendBack: "What happens right after you send it back.",
+      hold: "(Optional) what happens when you place it on hold."
     }
   },
 ```
@@ -125,11 +138,23 @@ cause **unauthorized changes**, add their key to `suspects` in the
 
 ---
 
+## Change freezes and "Place on Hold"
+
+When the **change freeze** event happens, the next CAB is frozen:
+
+- **Approve** a non-Emergency change and you break the freeze (Leadership and Audit penalty, plus an inspection finding).
+- **Place on Hold** appears as a fourth button (keyboard **H**). The change waits, unchanged, and comes back automatically at the first CAB after the freeze lifts.
+- **Emergency** changes are allowed through a freeze. Holding one is a mistake and costs Stability.
+
+You can add new freeze reasons by adding text variants to the `changeFreeze` event in `data.js`.
+
+---
+
 ## Other things you can edit in data.js
 
 | Section | What it is |
 |---|---|
-| `GENERIC_REPORTS` | Fallback report text when an RFC doesn't have its own |
+| `GENERIC_REPORTS` | Fallback report text, per category (firewall, router, switch, server, software) |
 | `COLLISION_REPORTS` | Text for when two changes clash on the same system |
 | `RESUBMISSION_NOTES` | What a sent-back RFC says when it returns |
 | `MEETING_INTROS` | Scene-setting lines before each meeting |
@@ -141,8 +166,8 @@ cause **unauthorized changes**, add their key to `suspects` in the
 
 ```js
   {
-    id: "SC-08",                       // unique; RFCs point at it with catalogueId
-    name: "Password policy reminder email",
+    id: "SC-11",                       // unique; RFCs point at it with catalogueId
+    name: "Name of the standard change",
     description: "What kind of change this is.",
     conditions: ["Every one of these must be true", "..."],
     notCovered: ["Things that make it a Normal change instead"],
@@ -161,6 +186,7 @@ Percentages and meter amounts live near the top of each section in
 | Symptom | Likely cause |
 |---|---|
 | Red box: *must be one of: yes, partial, none* | Capital letters matter: `"yes"` not `"Yes"`. |
-| Red box: *requester "Linda" isn't in CHARACTERS* | Use the key (`"linda"`), not the display name. |
-| Red box: *another RFC already uses this id* | Each `id` must be unique. |
-| The whole game is blank | Usually a missing comma between two `{ }` blocks, or a missing quote. Press **F12** and look at the **Console** tab: it names the line number. |
+| Red box: *requester "Okafor" isn't in CHARACTERS* | Use the key (`"okafor"`), not the display name. |
+| Red box: *another RFC already uses this id* | Each `id` must be unique across all files. |
+| Red box: *id must start with one of: FW, RT, SW, SV, UP* | The id prefix sets the category. |
+| The whole game is blank | Usually a missing comma between two `{ }` blocks, or a missing quote. Press **F12** and look at the **Console** tab: it names the file and line number. |

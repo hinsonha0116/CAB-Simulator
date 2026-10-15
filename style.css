@@ -244,6 +244,7 @@ h2 { line-height: 1.25; }
 .stamp.approve { color: var(--good); }
 .stamp.reject { color: var(--bad); }
 .stamp.sendBack { color: var(--warn); }
+.stamp.hold { color: #4a6b8a; }
 
 /* ---------- Buttons ---------- */
 button {
@@ -264,6 +265,7 @@ button.primary { background: var(--accent); }
 button.approve { background: var(--good); }
 button.reject { background: var(--bad); }
 button.sendback { background: var(--warn); }
+button.hold { background: #4a6b8a; }   /* steel blue: only shown during freezes */
 
 /* Keyboard shortcut hint inside a button, e.g. [A] */
 kbd {

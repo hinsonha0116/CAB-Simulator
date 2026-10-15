@@ -50,11 +50,12 @@
     <section id="screen-intro" class="screen">
       <h2 id="intro-title"></h2>
       <p id="intro-text"></p>
-      <p id="intro-rules">Each week has two CAB meetings, Tuesday and Thursday. For each change
-        request choose <strong>Approve</strong>, <strong>Reject</strong>, or
-        <strong>Send Back</strong> for more info. Approved changes get implemented after the
-        meeting, and that's when you find out how risky they really were.
-        If any meter hits 0, you're done.</p>
+      <p id="intro-rules">You chair the installation's Change Advisory Board. Each week has two
+        CAB meetings, Tuesday and Thursday. For each change request choose
+        <strong>Approve</strong>, <strong>Reject</strong>, or <strong>Send Back</strong> for more
+        info. During a change freeze you can also <strong>Place on Hold</strong>. Approved changes
+        get implemented after the meeting, and that's when you find out how risky they really
+        were. If any meter hits 0, you're done.</p>
       <p id="intro-tip" class="tip">Tip: "Standard" changes are pre-authorized, but only if they
         meet their entry in the <strong>Standard Change Catalogue</strong> (button at the top, or
         press C). Some requesters stretch the definition.</p>
@@ -71,8 +72,10 @@
         <button data-decision="approve" class="approve">Approve<kbd>A</kbd></button>
         <button data-decision="reject" class="reject">Reject<kbd>R</kbd></button>
         <button data-decision="sendBack" class="sendback">Send Back for More Info<kbd>S</kbd></button>
+        <!-- Only shown during a change freeze (game.js toggles it). -->
+        <button data-decision="hold" class="hold hidden">Place on Hold<kbd>H</kbd></button>
       </div>
-      <p class="shortcut-hint">Keyboard: A / R / S to decide, Enter to continue.</p>
+      <p class="shortcut-hint">Keyboard: A / R / S to decide<span id="hold-hint" class="hidden">, H to hold</span>, Enter to continue.</p>
       <p id="reaction"></p>
       <button id="btn-next" class="primary hidden">Next RFC</button>
     </section>
@@ -127,6 +130,12 @@
 
   <!-- Order matters: data first, then the logic that uses it. -->
   <script src="data.js"></script>
+  <!-- The change requests, one file per category (500 in total). -->
+  <script src="data/rfcs-firewalls.js"></script>
+  <script src="data/rfcs-routers.js"></script>
+  <script src="data/rfcs-switches.js"></script>
+  <script src="data/rfcs-servers.js"></script>
+  <script src="data/rfcs-software.js"></script>
   <script src="game.js"></script>
 </body>
 </html>

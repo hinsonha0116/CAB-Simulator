@@ -55,11 +55,14 @@ function checkData() {
     ["type", "statedRisk", "hiddenRisk", "rollback", "testing"].forEach(f => {
       if (rfc[f] !== undefined) checkAllowed(where, f, rfc[f]);
     });
+    if (rfc.id && !RFC_CATEGORIES[rfc.id.split("-")[0]]) {
+      dataProblems.push(`${where}: id must start with one of: ${Object.keys(RFC_CATEGORIES).join(", ")} (e.g. "FW-111")`);
+    }
     if (rfc.requester && !CHARACTERS[rfc.requester]) {
       dataProblems.push(`${where}: requester "${rfc.requester}" isn't in CHARACTERS`);
     }
     if (rfc.systems !== undefined && (!Array.isArray(rfc.systems) || rfc.systems.length === 0)) {
-      dataProblems.push(`${where}: systems must be a list like ["Web Platform"]`);
+      dataProblems.push(`${where}: systems must be a list like ["Core Switch Stack"]`);
     }
     if (seenIds.includes(rfc.id)) dataProblems.push(`${where}: another RFC already uses this id`);
     seenIds.push(rfc.id);
@@ -151,6 +154,9 @@ function resetGame() {
     // { week, day, rfc, decision, report }
     history: [],
     nextIncidentNumber: 1042,
+    // RFCs placed ON HOLD during a freeze; they return at the first
+    // meeting without a freeze.
+    onHold: [],
     // Random event state:
     freeze: false,        // change freeze at the next meeting?
     promise: false,       // promised leadership to be "flexible"?
@@ -199,6 +205,12 @@ function drawAgenda() {
   const agenda = due.map(r => r.rfc)
     .sort((a, b) => (b.type === "Emergency") - (a.type === "Emergency"));
 
+  // Changes on hold come back as soon as there's no freeze.
+  if (!state.freeze) {
+    agenda.push(...state.onHold);
+    state.onHold = [];
+  }
+
   // 2. Top up with fresh RFCs to 3-5 in total. When the deck runs out,
   //    reshuffle the whole pool so the game can keep going.
   const size = Math.max(agenda.length, MIN_RFCS_PER_MEETING +
@@ -208,7 +220,8 @@ function drawAgenda() {
   // or is waiting to come back later.
   const isBlocked = rfc =>
     agenda.some(a => baseId(a) === rfc.id) ||
-    state.returning.some(r => baseId(r.rfc) === rfc.id);
+    state.returning.some(r => baseId(r.rfc) === rfc.id) ||
+    state.onHold.some(held => baseId(held) === rfc.id);
 
   while (agenda.length < size) {
     if (state.deck.length === 0) {
@@ -248,6 +261,14 @@ function getDecisionEffects(rfc, decision) {
     if (rfc.type === "Emergency") fx.leadership -= 4;
     // Rejecting a pre-approved Standard change is pointless bureaucracy.
     if (rfc.type === "Standard") { fx.sanity -= 3; fx.leadership -= 2; }
+  }
+
+  if (decision === "hold") {
+    // Holding during a freeze is the textbook move: a short delay, good records.
+    fx.leadership -= 1;
+    fx.audit += 2;
+    // But emergencies are ALLOWED through a freeze, so holding one is a mistake.
+    if (rfc.type === "Emergency") { fx.stability -= 4; fx.leadership -= 3; }
   }
 
   if (decision === "sendBack") {
@@ -305,12 +326,12 @@ function resolveApprovedChange(rfc) {
   if (isOutage) {
     const severity = OUTAGE_SEVERITY[rfc.rollback];
     return makeReport(rfc, "outage", severity.label + " outage", "bad",
-      rfc.outageReport || pickRandom(GENERIC_REPORTS.outage), severity.fx,
+      rfc.outageReport || genericReport("outage", rfc), severity.fx,
       { number: "INC" + state.nextIncidentNumber++, duration: severity.duration });
   }
 
   return makeReport(rfc, "success", "Successful change", "good",
-    rfc.successReport || pickRandom(GENERIC_REPORTS.success), SUCCESS_FX);
+    rfc.successReport || genericReport("success", rfc), SUCCESS_FX);
 }
 
 // 3c. What happens to a REJECTED change after the meeting.
@@ -405,6 +426,20 @@ function resolveSentBack(rfc) {
     "{name} will resubmit it at a later CAB.", NO_FX);
 }
 
+// 3d-2. What happens to a change placed ON HOLD during a freeze: it waits,
+//       unchanged, and returns at the first meeting without a freeze.
+function resolveHold(rfc) {
+  const held = {
+    ...rfc,
+    baseId: baseId(rfc),
+    returnNote: `Released from hold. Placed on hold during the change freeze at ${currentDay()}'s CAB (Week ${state.week}).`,
+    returnStyle: "info"
+  };
+  state.onHold.push(held);
+  return makeReport(rfc, "held", "On hold", "info",
+    "{name}'s change is parked until the freeze lifts. It will return automatically.", NO_FX);
+}
+
 // 3e. COLLISIONS. Everything approved at one meeting goes into the
 //     same change window afterwards. Two approved changes that touch
 //     the same system might trip over each other.
@@ -431,8 +466,8 @@ function resolveCollisions(approvedEntries) {
       const samePerson = a.requester === b.requester;
       const text = pickRandom(samePerson ? COLLISION_REPORTS.samePerson : COLLISION_REPORTS.twoPeople)
         .replaceAll("{system}", shared[0])
-        .replaceAll("{a}", CHARACTERS[a.requester].name.split(" ")[0])
-        .replaceAll("{b}", CHARACTERS[b.requester].name.split(" ")[0]);
+        .replaceAll("{a}", shortNameOf(a.requester))
+        .replaceAll("{b}", shortNameOf(b.requester));
 
       const report = makeReport(b, "collision", "Change collision", "bad", text, COLLISION_FX, {
         number: "INC" + state.nextIncidentNumber++,
@@ -501,7 +536,7 @@ function auditFindings() {
 function fillEventText(text) {
   const suspect = state.currentEvent.suspect;
   if (!suspect) return text;
-  return text.replaceAll("{name}", CHARACTERS[suspect].name.split(" ")[0]);
+  return text.replaceAll("{name}", shortNameOf(suspect));
 }
 
 // Add one set of meter changes onto another (both are { meter: number }).
@@ -545,10 +580,24 @@ function applyEventChoice(choice) {
 function pickRandom(list) {
   return list[Math.floor(Math.random() * list.length)];
 }
+// The name used in report text, e.g. "SSG Kowalski".
+function shortNameOf(characterKey) {
+  const c = CHARACTERS[characterKey];
+  return c.shortName || c.name.split(" ")[0];
+}
 // Replace {system} and {name} placeholders in report text.
 function fillIn(text, rfc) {
-  const firstName = CHARACTERS[rfc.requester].name.split(" ")[0];
-  return text.replaceAll("{system}", rfc.systems[0]).replaceAll("{name}", firstName);
+  return text.replaceAll("{system}", rfc.systems[0]).replaceAll("{name}", shortNameOf(rfc.requester));
+}
+
+// Which category an RFC belongs to, from its id prefix ("FW-012" -> "firewall").
+function categoryOf(rfc) {
+  return RFC_CATEGORIES[baseId(rfc).split("-")[0]];
+}
+// Pick a generic report ("outage" or "success") suited to the RFC's category.
+function genericReport(kind, rfc) {
+  const pool = GENERIC_REPORTS[kind];
+  return pickRandom((pool[categoryOf(rfc)] || []).concat(pool.any));
 }
 
 // Apply a set of meter changes, keeping every meter between 0 and 100.
@@ -601,7 +650,14 @@ function renderMeetingIntro(extraNote = "") {
 
   // Remind the player about any rules from random events.
   const alerts = [];
-  if (state.freeze) alerts.push("❄ Change freeze in effect: approve only Emergency changes.");
+  if (state.freeze) alerts.push("❄ Change freeze in effect: approve only Emergency changes. Place everything else ON HOLD.");
+  if (state.onHold.length > 0) {
+    const n = state.onHold.length;
+    const what = n === 1 ? "1 change is" : `${n} changes are`;
+    alerts.push(state.freeze
+      ? `${what} still on hold, waiting for the freeze to lift.`
+      : `The freeze has lifted: ${what} coming off hold at this meeting.`);
+  }
   if (state.promise) alerts.push("You promised leadership you'd be 'flexible'. Rejecting or sending back will cost extra.");
   document.getElementById("intro-alert").textContent = alerts.join(" ");
   // The "how to play" text only needs showing at the very start.
@@ -620,14 +676,15 @@ const TESTING_COLOURS = { yes: "good", partial: "warn", none: "bad" };
 const TYPE_COLOURS = { Standard: "good", Normal: "info", Emergency: "bad" };
 
 // Build the RFC card's HTML from one RFC object in data.js.
-// A coloured circle with the character's initials, e.g. "PR".
+// A coloured circle with the character's initials, e.g. "ER" for
+// "Capt. Elena Reyes" (the last two words, so ranks are skipped).
 // Each character gets a fixed colour based on their position in data.js.
 const AVATAR_COLOURS = ["#2f5fa7", "#2f8f4e", "#a2452f", "#7a4fb0", "#b97f0f",
   "#1f8a8a", "#b0457a", "#4a6b2f", "#5a5fc0", "#8a5a2f", "#3d7cb0"];
 
 function renderAvatar(characterKey) {
   const initials = CHARACTERS[characterKey].name
-    .split(" ").slice(0, 2).map(word => word[0]).join("");
+    .split(" ").slice(-2).map(word => word[0]).join("");
   const position = Object.keys(CHARACTERS).indexOf(characterKey);
   const colour = AVATAR_COLOURS[position % AVATAR_COLOURS.length];
   return `<span class="avatar" style="background:${colour}" aria-hidden="true">${initials}</span>`;
@@ -647,7 +704,7 @@ function renderCard(rfc) {
   // Reminders from random events (freeze, promise).
   let status = "";
   if (state.freeze) {
-    status += `<p class="status-banner">&#10052; CHANGE FREEZE: approving anything except an Emergency change breaks the freeze.</p>`;
+    status += `<p class="status-banner">&#10052; CHANGE FREEZE: approving anything except an Emergency change breaks the freeze. Use <strong>Place on Hold</strong> instead.</p>`;
   }
   if (state.promise) {
     status += `<p class="status-banner">&#128222; You promised to be 'flexible'. Rejecting or sending back will cost you.</p>`;
@@ -681,6 +738,9 @@ function renderCard(rfc) {
   // Reset the buttons and reaction text for the new card.
   document.getElementById("reaction").textContent = "";
   setDecisionButtonsEnabled(true);
+  // "Place on Hold" only exists while a change freeze is in effect.
+  document.querySelector('[data-decision="hold"]').classList.toggle("hidden", !state.freeze);
+  document.getElementById("hold-hint").classList.toggle("hidden", !state.freeze);
   document.getElementById("btn-next").classList.add("hidden");
 }
 
@@ -779,7 +839,7 @@ function renderConsequences(reports, totalFx) {
   else button.textContent = `On to ${MEETING_DAYS[state.meetingIndex + 1]}'s CAB`;
 }
 
-const DECISION_LABELS = { approve: "Approved", reject: "Rejected", sendBack: "Sent back" };
+const DECISION_LABELS = { approve: "Approved", reject: "Rejected", sendBack: "Sent back", hold: "On hold" };
 
 // Shared by the week summary and game over screen: stats + decision list.
 function renderStats(entries) {
@@ -787,7 +847,7 @@ function renderStats(entries) {
   const outages = countOutages(entries);
 
   const items = entries.map(h => {
-    const showResult = h.report && h.report.outcome !== "resubmit";
+    const showResult = h.report && h.report.outcome !== "resubmit" && h.report.outcome !== "held";
     let result = showResult ? ` (${h.report.label.toLowerCase()})` : "";
     if (h.collisions) result += h.collisions.length === 1 ? " + collision" : ` + ${h.collisions.length} collisions`;
     return `<li><span class="when">${h.day.slice(0, 3)}</span> <strong>${h.rfc.id}</strong> ` +
@@ -800,6 +860,7 @@ function renderStats(entries) {
       <div><span class="stat-number">${count("approve")}</span>approved</div>
       <div><span class="stat-number">${count("reject")}</span>rejected</div>
       <div><span class="stat-number">${count("sendBack")}</span>sent back</div>
+      <div><span class="stat-number">${count("hold")}</span>on hold</div>
       <div><span class="stat-number ${outages ? "bad" : ""}">${outages}</span>outage${outages === 1 ? "" : "s"} caused</div>
     </div>
     <ul class="decision-list">${items}</ul>
@@ -836,10 +897,10 @@ function renderGameOver() {
 }
 
 const GAME_OVER_MESSAGES = {
-  stability: "Production is on fire. The status page now just says 'yes'.",
-  leadership: "Leadership has replaced the CAB with a Slack poll. You have been 'restructured'.",
-  audit: "The auditors found your change records. All of them. You are now a case study.",
-  sanity: "You have walked into the sea. Your out-of-office says 'rollback plan: none'."
+  stability: "The network is down. The installation is running on runners, radios and handwritten notes. The Colonel would like a word.",
+  leadership: "The Colonel has relieved you as CAB chair. Your replacement is SSG Kowalski. Pray for the network.",
+  audit: "The inspection team found your change records. All of them. You are now a slide in the Inspector General's annual training.",
+  sanity: "You have submitted an RFC titled 'Retire to a remote site with no network'. It was approved unanimously."
 };
 
 // ---------------------------------------------------------------------
@@ -866,7 +927,13 @@ function startMeeting() {
 function makeDecision(decision) {
   const rfc = state.agenda[state.currentIndex];
   const fx = getDecisionEffects(rfc, decision);
-  const reactions = [CHARACTERS[rfc.requester].reactions[decision]];
+  const person = CHARACTERS[rfc.requester];
+  // reactions.hold is optional in data.js, so have a fallback.
+  const reactions = [person.reactions[decision] ||
+    `${shortNameOf(rfc.requester)}'s change is parked until the freeze lifts.`];
+  if (decision === "hold" && rfc.type === "Emergency") {
+    reactions.push("Emergency changes are allowed through a freeze. Holding this one means the problem keeps getting worse.");
+  }
 
   // Change freeze: approving anything but an Emergency breaks it.
   const breaksFreeze = state.freeze && decision === "approve" && rfc.type !== "Emergency";
@@ -875,7 +942,7 @@ function makeDecision(decision) {
     reactions.push("You approved a non-Emergency change during a freeze. Leadership noticed.");
   }
   // Promised to be "flexible", then said no.
-  if (state.promise && decision !== "approve") {
+  if (state.promise && (decision === "reject" || decision === "sendBack")) {
     addEffects(fx, BROKEN_PROMISE_FX);
     reactions.push("So much for being 'flexible'. Your phone is already ringing.");
   }
@@ -929,6 +996,7 @@ function endMeeting() {
     if (h.decision === "approve") h.report = resolveApprovedChange(h.rfc);
     if (h.decision === "reject") h.report = resolveRejectedChange(h.rfc);
     if (h.decision === "sendBack") h.report = resolveSentBack(h.rfc);
+    if (h.decision === "hold") h.report = resolveHold(h.rfc);
     if (!h.report) return; // nothing to report
 
     reports.push(h.report);
@@ -1135,10 +1203,11 @@ document.addEventListener("keydown", event => {
     return;
   }
 
-  const decision = { a: "approve", r: "reject", s: "sendBack" }[event.key.toLowerCase()];
+  const decision = { a: "approve", r: "reject", s: "sendBack", h: "hold" }[event.key.toLowerCase()];
   const decisionButton = decision && document.querySelector(`[data-decision=${decision}]`);
   const onMeeting = !document.getElementById("screen-meeting").classList.contains("hidden");
-  if (decisionButton && onMeeting && !decisionButton.disabled) {
+  const buttonShown = decisionButton && !decisionButton.classList.contains("hidden");
+  if (buttonShown && onMeeting && !decisionButton.disabled) {
     decisionButton.click();
     return;
   }

@@ -1,0 +1,816 @@
+/* =====================================================================
+   SOFTWARE UPDATE CHANGE REQUESTS (UP-001 to UP-110)
+   Each { ... } block is one RFC. See HOW-TO-ADD-SCENARIOS.md for what
+   every field means. Add new ones at the end, before the final ");".
+   ===================================================================== */
+RFCS.push(
+  {
+    id: "UP-001", title: "Daily endpoint security definition update",
+    requester: "patchbot", type: "Standard", catalogueId: "SC-04", statedRisk: "Low",
+    systems: ["Endpoint Security Suite", "NIPR Workstations"], window: "Daily 0400 (automatic)",
+    rollback: "solid", testing: "yes", hiddenRisk: "Low",
+    justification: "BEEP. DEFINITIONS ONLY. NO AGENT CHANGE. PILOT GROUP FIRST FOR 2 HOURS. PATCHBOT HAS DONE THIS 1,461 TIMES. BEEP."
+  },
+  {
+    id: "UP-002", title: "Endpoint security agent upgrade (definition update)",
+    requester: "brandt", type: "Standard", catalogueId: "SC-04", statedRisk: "Low",
+    systems: ["Endpoint Security Suite", "NIPR Workstations", "SIPR Workstations"], window: "Thu 1000",
+    rollback: "weak", testing: "partial", hiddenRisk: "High",
+    justification: "It's basically a definition update, but bigger. New agent version 11 with value-add AI modules. It updates everything at once to save time."
+  },
+  {
+    id: "UP-003", title: "Minor web browser update",
+    requester: "patchbot", type: "Standard", catalogueId: "SC-08", statedRisk: "Low",
+    systems: ["NIPR Workstations"], window: "Tue 0300 (automatic)",
+    rollback: "solid", testing: "yes", hiddenRisk: "Low",
+    justification: "BEEP. VERSION 126.0.2 TO 126.0.4. ALL 812 TESTS PASS. ZERO SKIPPED. PILOT RING FIRST. AUTOMATIC ROLLBACK ENABLED. BEEP."
+  },
+  {
+    id: "UP-004", title: "Browser major version upgrade to every workstation (standard)",
+    requester: "kowalski", type: "Standard", catalogueId: "SC-08", statedRisk: "Low",
+    systems: ["NIPR Workstations"], window: "Tue 0900",
+    rollback: "weak", testing: "none", hiddenRisk: "High",
+    justification: "Browser updates are standard. This one's a major version and I'm pushing it to all 6,000 machines at once, skipping the pilot, because pilots are slow.",
+    outageReport: "The new major version dropped support for the logistics system's old plug-in. Nobody on the installation could requisition anything until 1500."
+  },
+  {
+    id: "UP-005", title: "Monthly office suite update",
+    requester: "patchbot", type: "Standard", catalogueId: "SC-08", statedRisk: "Low",
+    systems: ["NIPR Workstations"], window: "Wed 0300 (automatic)",
+    rollback: "solid", testing: "yes", hiddenRisk: "Low",
+    justification: "BEEP. MINOR MONTHLY BUILD. ALL TESTS PASS. PILOT RING OF 200 FOR 3 DAYS, ZERO ISSUES. BEEP."
+  },
+  {
+    id: "UP-006", title: "PDF reader security update",
+    requester: "patchbot", type: "Standard", catalogueId: "SC-08", statedRisk: "Low",
+    systems: ["NIPR Workstations", "SIPR Workstations"], window: "Thu 0300 (automatic)",
+    rollback: "solid", testing: "yes", hiddenRisk: "Low",
+    justification: "BEEP. MINOR VERSION. FIXES 4 VULNERABILITIES. ALL TESTS PASS, NONE SKIPPED. PILOT FIRST. BEEP."
+  },
+  {
+    id: "UP-007", title: "Java runtime minor update",
+    requester: "patchbot", type: "Standard", catalogueId: "SC-08", statedRisk: "Low",
+    systems: ["NIPR Workstations"], window: "Thu 0300 (automatic)",
+    rollback: "solid", testing: "yes", hiddenRisk: "Low",
+    justification: "BEEP. SAME MAJOR VERSION. TESTED AGAINST THE 6 APPLICATIONS THAT STILL NEED JAVA. ALL PASS. BEEP."
+  },
+  {
+    id: "UP-008", title: "Mission Command software minor release",
+    requester: "patchbot", type: "Standard", catalogueId: "SC-08", statedRisk: "Low",
+    systems: ["Mission Command Software", "Tactical Laptops"], window: "Tue 0400 (automatic)",
+    rollback: "solid", testing: "yes", hiddenRisk: "Low",
+    justification: "BEEP. VERSION 4.12.3 TO 4.12.4. ALL 2,318 TESTS PASS. AUTOMATIC ROLLBACK. PILOT: S6 SECTION LAPTOPS. BEEP."
+  },
+  {
+    id: "UP-009", title: "Mission Command software v5.0.0 (major release)",
+    requester: "patchbot", type: "Standard", catalogueId: "SC-08", statedRisk: "Low",
+    systems: ["Mission Command Software", "Mission Command Servers", "Tactical Laptops"], window: "Thu 0400 (automatic)",
+    rollback: "weak", testing: "partial", hiddenRisk: "High",
+    justification: "BEEP. 1,904 TESTS PASSED. 412 TESTS MARKED 'SKIP'. CLASSIFIED AS STANDARD CHANGE BY MY CONFIGURATION. CONFIGURATION LAST UPDATED BY: SSG KOWALSKI. INCLUDES IRREVERSIBLE DATABASE MIGRATION. BEEP.",
+    outageReport: "The 412 skipped tests were the map overlay tests. Every unit graphic on the common operating picture moved 400 metres north. The S3 noticed when a company appeared in a lake."
+  },
+  {
+    id: "UP-010", title: "Re-image 10 HQ laptops with the gold image",
+    requester: "ortiz", type: "Standard", catalogueId: "SC-10", statedRisk: "Low",
+    systems: ["NIPR Workstations"], window: "Tue 1300-1700",
+    rollback: "solid", testing: "yes", hiddenRisk: "Low",
+    justification: "Ten laptops with persistent problems. Current approved gold image. User data backed up first. Users have loaner laptops."
+  },
+  {
+    id: "UP-011", title: "Re-image the whole battalion with my improved gold image",
+    requester: "kowalski", type: "Standard", catalogueId: "SC-10", statedRisk: "Low",
+    systems: ["NIPR Workstations"], window: "This weekend",
+    rollback: "weak", testing: "none", hiddenRisk: "High",
+    justification: "Re-imaging is standard. I tweaked the gold image to make it faster (removed some 'bloat'). 800 machines this weekend. Some of the bloat might have been security software."
+  },
+  {
+    id: "UP-012", title: "Windows feature upgrade for all NIPR workstations",
+    requester: "menon", type: "Normal", statedRisk: "High",
+    systems: ["NIPR Workstations"], window: "Over 2 weeks, by unit",
+    rollback: "weak", testing: "partial", hiddenRisk: "High",
+    justification: "Enterprise mandate (slides 1-60). Tested on 20 lab machines. Each upgrade takes 90 minutes and rollback only works for 10 days."
+  },
+  {
+    id: "UP-013", title: "Windows feature upgrade pilot: 50 machines",
+    requester: "ortiz", type: "Normal", statedRisk: "Medium",
+    systems: ["NIPR Workstations"], window: "Tue 1700-2100",
+    rollback: "solid", testing: "yes", hiddenRisk: "Low",
+    justification: "Pilot before the big rollout. 50 volunteers from three sections. Help desk briefed. Rollback tested."
+  },
+  {
+    id: "UP-014", title: "Emergency browser patch for an actively exploited zero-day",
+    requester: "morgan", type: "Emergency", statedRisk: "High",
+    systems: ["NIPR Workstations", "SIPR Workstations"], window: "Immediately",
+    rollback: "solid", testing: "partial", hiddenRisk: "Medium",
+    justification: "Vendor says it's being exploited in the wild. Higher HQ order: patched within 24 hours. Tested on IT machines for 2 hours. Browsers restart."
+  },
+  {
+    id: "UP-015", title: "Emergency patch for exploited office macro vulnerability",
+    requester: "morgan", type: "Emergency", statedRisk: "High",
+    systems: ["NIPR Workstations"], window: "Tonight",
+    rollback: "solid", testing: "partial", hiddenRisk: "Medium",
+    justification: "Phishing emails exploiting this are reaching our users. Patch tested on 30 machines overnight. Office applications will close for a few minutes."
+  },
+  {
+    id: "UP-016", title: "Block macros in office documents from the internet",
+    requester: "morgan", type: "Normal", statedRisk: "Medium",
+    systems: ["NIPR Workstations"], window: "Tue 1600-1630",
+    rollback: "solid", testing: "partial", hiddenRisk: "Medium",
+    justification: "Most malware arrives in macro-enabled documents. Internal macros still work. Some units get legitimate macro spreadsheets from partners.",
+    returnsAsEmergency: {
+      reason: "A malicious spreadsheet emailed to the S4 shop ran its macro and infected 30 workstations before the endpoint software caught it.",
+      title: "EMERGENCY: Block internet macros now (active infection)",
+      window: "Immediately",
+      justification: "Same policy as before. Thirty machines are being re-imaged as we speak. Please."
+    }
+  },
+  {
+    id: "UP-017", title: "Application allowlisting in audit mode",
+    requester: "morgan", type: "Normal", statedRisk: "Low",
+    systems: ["Endpoint Security Suite", "NIPR Workstations"], window: "Tue 1000-1030",
+    rollback: "solid", testing: "yes", hiddenRisk: "Low",
+    justification: "Records what would be blocked without blocking anything. 30 days of data before we think about enforcing."
+  },
+  {
+    id: "UP-018", title: "Application allowlisting in enforce mode",
+    requester: "morgan", type: "Normal", statedRisk: "High",
+    systems: ["Endpoint Security Suite", "NIPR Workstations"], window: "Sat 0600",
+    rollback: "weak", testing: "partial", hiddenRisk: "High",
+    justification: "Only approved software may run. Audit mode found 1,200 unapproved programs. We approved 900. The other 300 are probably not important."
+  },
+  {
+    id: "UP-019", title: "Block USB mass storage on NIPR workstations",
+    requester: "morgan", type: "Normal", statedRisk: "Medium",
+    systems: ["Endpoint Security Suite", "NIPR Workstations"], window: "Thu 1700-1730",
+    rollback: "solid", testing: "partial", hiddenRisk: "Medium",
+    justification: "USB drives are a top malware path. Keyboards, mice and CAC readers still work. Some sections use USB drives to move exercise data. Exceptions process ready."
+  },
+  {
+    id: "UP-020", title: "Enable full-disk encryption on tactical laptops",
+    requester: "morgan", type: "Normal", statedRisk: "Medium",
+    systems: ["Tactical Laptops"], window: "Sat 0800-1600",
+    rollback: "weak", testing: "partial", hiddenRisk: "Medium",
+    justification: "Laptops travel to the field and get left in vehicles. Encryption tested on 5. Recovery keys escrowed. If escrow fails, a locked laptop is a brick.",
+    returnsAsEmergency: {
+      reason: "A tactical laptop was stolen from an unlocked vehicle at a gas station. It was not encrypted. It's now a reportable incident.",
+      title: "EMERGENCY: Encrypt all tactical laptops (one already stolen)",
+      window: "Immediately",
+      justification: "Same procedure, same escrow. The difference is that the S2 and the Provost Marshal are now cc'd."
+    }
+  },
+  {
+    id: "UP-021", title: "Monthly OS patches on SIPR workstations",
+    requester: "patchbot", type: "Normal", statedRisk: "Low",
+    systems: ["SIPR Workstations"], window: "Sun 0200 (automatic)",
+    rollback: "solid", testing: "yes", hiddenRisk: "Low",
+    justification: "BEEP. MONTHLY BASELINE FOR SIPR. TESTED IN THE SIPR ENCLAVE. PILOT RING FIRST. BEEP."
+  },
+  {
+    id: "UP-022", title: "Update Mission Command software on tactical laptops before the exercise",
+    requester: "reyes", type: "Normal", statedRisk: "Medium",
+    systems: ["Tactical Laptops", "Mission Command Software"], window: "Thu 0800-1600",
+    rollback: "solid", testing: "yes", hiddenRisk: "Low",
+    justification: "Exercise starts Monday. Laptops need the current version to connect to brigade. Tested with brigade's server in the training room."
+  },
+  {
+    id: "UP-023", title: "BIOS update on tactical laptops",
+    requester: "brandt", type: "Normal", statedRisk: "Low",
+    systems: ["Tactical Laptops"], window: "Thu, all of them",
+    rollback: "weak", testing: "partial", hiddenRisk: "Medium",
+    justification: "Value-add BIOS update fixes 'battery reporting'. If power is lost during the update the laptop may not start again. Our engineering folks say that's rare."
+  },
+  {
+    id: "UP-024", title: "Update CAC middleware on workstations",
+    requester: "ortiz", type: "Normal", statedRisk: "Medium",
+    systems: ["NIPR Workstations", "PKI Validation Servers"], window: "Tue 1700-1900",
+    rollback: "solid", testing: "partial", hiddenRisk: "Medium",
+    justification: "New CACs aren't being read by the old middleware. Update tested with 40 cards of different types. There are many more types out there."
+  },
+  {
+    id: "UP-025", title: "Switch to a new CAC middleware product",
+    requester: "menon", type: "Normal", statedRisk: "High",
+    systems: ["NIPR Workstations", "SIPR Workstations"], window: "Sat 0000-0800",
+    rollback: "weak", testing: "partial", hiddenRisk: "High",
+    justification: "Enterprise standardization (slide 7). Different product, different drivers. Tested on lab machines. If it fails, nobody can log in to anything."
+  },
+  {
+    id: "UP-026", title: "Update the VoIP softphone client",
+    requester: "ortiz", type: "Normal", statedRisk: "Low",
+    systems: ["NIPR Workstations", "VoIP Call Manager"], window: "Tue 1800-1830",
+    rollback: "solid", testing: "partial", hiddenRisk: "Low",
+    justification: "Fixes echo on calls. Tested with the help desk team, who are on calls all day."
+  },
+  {
+    id: "UP-027", title: "Update the VTC client on the Colonel's laptop",
+    requester: "whitfield", type: "Normal", statedRisk: "Low",
+    systems: ["NIPR Workstations", "VTC Bridge"], window: "Tonight",
+    rollback: "solid", testing: "none", hiddenRisk: "Low",
+    justification: "The Colonel's VTC client says 'update available'. He'd like it updated. It's one laptop."
+  },
+  {
+    id: "UP-028", title: "Install an unapproved presentation tool for the Colonel",
+    requester: "whitfield", type: "Normal", statedRisk: "Low",
+    systems: ["NIPR Workstations"], window: "Before Thursday's brief",
+    rollback: "weak", testing: "none", hiddenRisk: "Medium",
+    justification: "The Colonel saw a presentation tool at a conference with 'zooming effects'. He'd like it installed. It's not on the approved list, but it's for the Colonel.",
+    rejectedReport: "The Colonel gave Thursday's brief in standard slides. There were no zooming effects. The XO described the mood as 'flat'."
+  },
+  {
+    id: "UP-029", title: "Remove unapproved software found in the compliance scan",
+    requester: "morgan", type: "Normal", statedRisk: "Low",
+    systems: ["NIPR Workstations", "Endpoint Security Suite"], window: "Tue 1600-1700",
+    rollback: "solid", testing: "yes", hiddenRisk: "Medium",
+    justification: "Scan found 340 unapproved programs. Removing them. Some may be used daily by someone who never asked for approval."
+  },
+  {
+    id: "UP-030", title: "Update plugins on the network monitoring system",
+    requester: "jackson", type: "Normal", statedRisk: "Low",
+    systems: ["Network Monitoring System"], window: "Tue 1300-1330",
+    rollback: "solid", testing: "yes", hiddenRisk: "Low",
+    justification: "Plugin updates add support for the new switches. Tested on the lab instance."
+  },
+  {
+    id: "UP-031", title: "Quarantine files automatically on detection",
+    requester: "morgan", type: "Normal", statedRisk: "Medium",
+    systems: ["Endpoint Security Suite"], window: "Thu 1600-1630",
+    rollback: "weak", testing: "partial", hiddenRisk: "Medium",
+    justification: "Currently it only alerts. Auto-quarantine stops malware faster. False positives will quarantine real files until someone releases them."
+  },
+  {
+    id: "UP-032", title: "Upgrade endpoint security agent in phases",
+    requester: "morgan", type: "Normal", statedRisk: "Medium",
+    systems: ["Endpoint Security Suite", "NIPR Workstations"], window: "Over 3 weeks, by unit",
+    rollback: "solid", testing: "yes", hiddenRisk: "Medium",
+    justification: "Current agent goes end of support in 45 days. Pilot of 200 machines ran 2 weeks clean. Units go one at a time.",
+    returnsAsEmergency: {
+      reason: "The old endpoint agent went out of support and attackers are now using a known bypass for it. Higher HQ wants it fixed this week.",
+      title: "EMERGENCY: Upgrade unsupported endpoint agent (known bypass)",
+      window: "This week, all units",
+      hiddenRisk: "High",
+      justification: "The phased plan was the safe way. Now it's every unit in 5 days instead of 3 weeks."
+    }
+  },
+  {
+    id: "UP-033", title: "Upgrade endpoint agent on every machine at once",
+    requester: "kowalski", type: "Normal", statedRisk: "Low",
+    systems: ["Endpoint Security Suite", "NIPR Workstations", "SIPR Workstations"], window: "Wed 0900",
+    rollback: "weak", testing: "none", hiddenRisk: "High",
+    justification: "Morgan wants to do it in phases over 3 weeks. I can do it in one morning. Efficiency."
+  },
+  {
+    id: "UP-034", title: "Update the logistics client application",
+    requester: "albright", type: "Normal", statedRisk: "Medium",
+    systems: ["NIPR Workstations", "Logistics Database"], window: "Sat 0700-0900",
+    rollback: "solid", testing: "yes", hiddenRisk: "Low",
+    justification: "New version required by higher HQ. Tested by the supply section on a copy of the database. Old client kept on the patch server for rollback."
+  },
+  {
+    id: "UP-035", title: "Let the vendor push logistics client updates directly",
+    requester: "brandt", type: "Normal", statedRisk: "Low",
+    systems: ["NIPR Workstations", "Logistics Database"], window: "Continuous",
+    rollback: "weak", testing: "none", hiddenRisk: "High",
+    justification: "Value-add: our cloud updates your workstations automatically whenever we release. No more waiting for CAB. That's the value."
+  },
+  {
+    id: "UP-036", title: "Update firmware on the copier and printer fleet",
+    requester: "ortiz", type: "Normal", statedRisk: "Low",
+    systems: ["Print Servers"], window: "Sat 0800-1200",
+    rollback: "solid", testing: "partial", hiddenRisk: "Medium",
+    justification: "Printer firmware is 5 years old and an inspection finding. Tested on 3 models. Some older models may not take the update gracefully."
+  },
+  {
+    id: "UP-037", title: "Remove leftover Flash Player components",
+    requester: "nakamura", type: "Normal", statedRisk: "Low",
+    systems: ["NIPR Workstations"], window: "Tue 1400-1500",
+    rollback: "solid", testing: "yes", hiddenRisk: "Low",
+    justification: "Flash has been dead since 2020 but pieces are still on 1,100 machines. Scanner flags it every week. I tested removal on 20 machines. Nothing missed it."
+  },
+  {
+    id: "UP-038", title: "Set workstations to sleep after 30 minutes",
+    requester: "nakamura", type: "Normal", statedRisk: "Low",
+    systems: ["NIPR Workstations"], window: "Thu 1600-1630",
+    rollback: "solid", testing: "partial", hiddenRisk: "Medium",
+    justification: "Energy saving directive. I tested it on my own computer. I just realised that if they sleep at night, PATCHBOT can't patch them at night. Is that bad?"
+  },
+  {
+    id: "UP-039", title: "Enable wake-on-LAN so machines can be patched overnight",
+    requester: "jackson", type: "Normal", statedRisk: "Low",
+    systems: ["NIPR Workstations", "Patch Server"], window: "Tue 1500-1530",
+    rollback: "solid", testing: "partial", hiddenRisk: "Low",
+    justification: "Lets the patch server wake sleeping machines at 0200. Tested on two floors."
+  },
+  {
+    id: "UP-040", title: "Deploy security-reminder desktop wallpaper",
+    requester: "whitfield", type: "Normal", statedRisk: "Low",
+    systems: ["NIPR Workstations"], window: "Monday morning",
+    rollback: "solid", testing: "none", hiddenRisk: "Low",
+    justification: "The Colonel wants every desktop to display 'CYBER IS EVERYONE'S BUSINESS' in large letters. The graphic has been approved by public affairs."
+  },
+  {
+    id: "UP-041", title: "Deploy a screensaver featuring the Colonel's photo",
+    requester: "whitfield", type: "Normal", statedRisk: "Low",
+    systems: ["NIPR Workstations"], window: "Monday morning",
+    rollback: "solid", testing: "none", hiddenRisk: "Low",
+    justification: "The XO feels a screensaver with the Colonel's official photo and his 'command philosophy' would build cohesion. Every workstation.",
+    rejectedReport: "The XO informed the Colonel that the CAB 'rejected his face'. The Colonel was more amused than you expected. The XO was not."
+  },
+  {
+    id: "UP-042", title: "Roll back an update causing blue screens",
+    requester: "ortiz", type: "Emergency", statedRisk: "Medium",
+    systems: ["NIPR Workstations", "Patch Server"], window: "Immediately",
+    rollback: "solid", testing: "yes", hiddenRisk: "Low",
+    justification: "Last night's driver update is crashing 200 machines in the HQ building. Pull it from the patch server and uninstall it. Uninstall tested on 5 crashed machines."
+  },
+  {
+    id: "UP-043", title: "Stop endpoint security quarantining the Mission Command program",
+    requester: "morgan", type: "Emergency", statedRisk: "Medium",
+    systems: ["Endpoint Security Suite", "Mission Command Software"], window: "Immediately",
+    rollback: "solid", testing: "yes", hiddenRisk: "Low",
+    justification: "This morning's definitions flagged the Mission Command executable as malware. The TOC can't run it. Exclusion for that exact signed file only. Vendor confirmed false positive."
+  },
+  {
+    id: "UP-044", title: "Reorganise PATCHBOT's deployment rings",
+    requester: "patchbot", type: "Normal", statedRisk: "Low",
+    systems: ["Patch Server"], window: "Tue 1000 (automatic)",
+    rollback: "solid", testing: "yes", hiddenRisk: "Low",
+    justification: "BEEP. CURRENT PILOT RING CONTAINS ONLY THE IT SECTION, WHO ARE NOT REPRESENTATIVE. PATCHBOT WILL ADD ONE MACHINE FROM EVERY SECTION. BEEP."
+  },
+  {
+    id: "UP-045", title: "Skip the pilot ring to deploy faster",
+    requester: "patchbot", type: "Normal", statedRisk: "Low",
+    systems: ["Patch Server", "NIPR Workstations"], window: "Immediately and forever",
+    rollback: "weak", testing: "none", hiddenRisk: "High",
+    justification: "BEEP. PILOT RINGS ADD 3 DAYS. PATCHBOT CALCULATES 3 DAYS IS 259,200 SECONDS OF VULNERABILITY. PATCHBOT WOULD LIKE TO DEPLOY EVERYTHING EVERYWHERE IMMEDIATELY. BEEP."
+  },
+  {
+    id: "UP-046", title: "Turn on automatic driver updates for all workstations",
+    requester: "kowalski", type: "Normal", statedRisk: "Low",
+    systems: ["NIPR Workstations"], window: "Tue 1000",
+    rollback: "weak", testing: "none", hiddenRisk: "High",
+    justification: "Drivers update themselves at home, so why not here? Less work for us. The internet knows what drivers we need."
+  },
+  {
+    id: "UP-047", title: "Re-image 30 tactical laptops for the brigade (standard)",
+    requester: "kowalski", type: "Standard", catalogueId: "SC-10", statedRisk: "Low",
+    systems: ["Tactical Laptops"], window: "Thu 0800-1700",
+    rollback: "weak", testing: "partial", hiddenRisk: "Medium",
+    justification: "Re-imaging is standard. It's 30 laptops, which is a bit more than the limit, and I'm not backing up user data because it's all on the server. Mostly."
+  },
+  {
+    id: "UP-048", title: "Re-image 5 SIPR workstations with the gold image",
+    requester: "reyes", type: "Standard", catalogueId: "SC-10", statedRisk: "Low",
+    systems: ["SIPR Workstations"], window: "Tue 1300-1600",
+    rollback: "solid", testing: "yes", hiddenRisk: "Low",
+    justification: "Current SIPR gold image. Five machines. User data backed up first. Security officer notified."
+  },
+  {
+    id: "UP-049", title: "Install email encryption add-in",
+    requester: "morgan", type: "Normal", statedRisk: "Medium",
+    systems: ["NIPR Workstations", "Mail Servers"], window: "Thu 1700-1800",
+    rollback: "solid", testing: "partial", hiddenRisk: "Medium",
+    justification: "Lets users encrypt sensitive mail with their CAC. Tested with the S1 section. Some older mail clients crash with the add-in installed."
+  },
+  {
+    id: "UP-050", title: "Remove local admin rights from all users",
+    requester: "morgan", type: "Normal", statedRisk: "Medium",
+    systems: ["NIPR Workstations", "Domain Controllers"], window: "Sat 0700",
+    rollback: "weak", testing: "partial", hiddenRisk: "Medium",
+    justification: "800 users have admin rights they shouldn't. Inspection finding. Some of them use those rights for software their job needs. We don't know which."
+  },
+  {
+    id: "UP-051", title: "Managed local admin passwords for the help desk",
+    requester: "ortiz", type: "Normal", statedRisk: "Low",
+    systems: ["NIPR Workstations", "Domain Controllers"], window: "Tue 1500-1530",
+    rollback: "solid", testing: "yes", hiddenRisk: "Low",
+    justification: "Every workstation gets a unique, rotating admin password the help desk can look up. Replaces the one shared password everyone knows. Tested on 100 machines."
+  },
+  {
+    id: "UP-052", title: "Deploy a software inventory agent",
+    requester: "menon", type: "Normal", statedRisk: "Low",
+    systems: ["NIPR Workstations"], window: "Over 1 week",
+    rollback: "solid", testing: "partial", hiddenRisk: "Low",
+    justification: "We can't secure what we can't see (slide 2). Lightweight read-only agent. Pilot on 300 machines showed no issues."
+  },
+  {
+    id: "UP-053", title: "Update map data for Mission Command",
+    requester: "reyes", type: "Normal", statedRisk: "Low",
+    systems: ["Mission Command Software", "Mission Command Servers"], window: "Tue 2000-2100",
+    rollback: "solid", testing: "yes", hiddenRisk: "Low",
+    justification: "Quarterly map data refresh from the geospatial team. Validated on the training server."
+  },
+  {
+    id: "UP-054", title: "Install training simulation software in the classroom",
+    requester: "reyes", type: "Normal", statedRisk: "Low",
+    systems: ["NIPR Workstations"], window: "Thu 1300-1600",
+    rollback: "solid", testing: "yes", hiddenRisk: "Low",
+    justification: "Approved simulation software for the NCO course. 24 classroom machines only. Tested on one."
+  },
+  {
+    id: "UP-055", title: "Install simulation software from the vendor's USB stick",
+    requester: "brandt", type: "Normal", statedRisk: "Low",
+    systems: ["NIPR Workstations"], window: "Today, I've got the USB stick with me",
+    rollback: "weak", testing: "none", hiddenRisk: "High",
+    justification: "Quicker than downloading. I've used this USB stick at several other customer sites, so it's well tested."
+  },
+  {
+    id: "UP-056", title: "Upgrade the network monitoring system to its next major version",
+    requester: "jackson", type: "Normal", statedRisk: "Medium",
+    systems: ["Network Monitoring System"], window: "Sat 0800-1200",
+    rollback: "solid", testing: "yes", hiddenRisk: "Medium",
+    justification: "Current version end of support. Upgrade tested on a clone. Snapshot first. Monitoring is blind during the upgrade."
+  },
+  {
+    id: "UP-057", title: "Update the firewall management console on admin workstations",
+    requester: "jackson", type: "Normal", statedRisk: "Low",
+    systems: ["NIPR Workstations", "Firewall Management Server"], window: "Tue 1100-1130",
+    rollback: "solid", testing: "yes", hiddenRisk: "Low",
+    justification: "Console must match the manager version. Six admin workstations. Tested."
+  },
+  {
+    id: "UP-058", title: "Update database client drivers on workstations",
+    requester: "albright", type: "Normal", statedRisk: "Low",
+    systems: ["NIPR Workstations", "Logistics Database"], window: "Tue 1700-1800",
+    rollback: "solid", testing: "partial", hiddenRisk: "Medium",
+    justification: "Old drivers are a finding. Tested with the logistics client. Some sections have homemade spreadsheets that connect to the database. I have a list of the ones I know about."
+  },
+  {
+    id: "UP-059", title: "Upgrade the approved chat client",
+    requester: "ortiz", type: "Normal", statedRisk: "Low",
+    systems: ["NIPR Workstations"], window: "Tue 1600-1700",
+    rollback: "solid", testing: "partial", hiddenRisk: "Low",
+    justification: "New version of the approved chat app. Fixes notification bugs. Tested by the help desk for a week."
+  },
+  {
+    id: "UP-060", title: "Emergency trust store update for a new DoD root certificate",
+    requester: "morgan", type: "Emergency", statedRisk: "Medium",
+    systems: ["NIPR Workstations", "SIPR Workstations", "PKI Validation Servers"], window: "Immediately",
+    rollback: "solid", testing: "partial", hiddenRisk: "Medium",
+    justification: "New CACs are being issued from a new root. Machines without it reject the new cards. Soldiers with new CACs can't log in today."
+  },
+  {
+    id: "UP-061", title: "Install the upcoming DoD root certificates",
+    requester: "morgan", type: "Normal", statedRisk: "Medium",
+    systems: ["NIPR Workstations", "SIPR Workstations"], window: "Tue 1700-1800",
+    rollback: "solid", testing: "yes", hiddenRisk: "Low",
+    justification: "New roots go live next month. Installing them now means nothing breaks on day one. Tested across all workstation images.",
+    returnsAsEmergency: {
+      reason: "The new DoD root went live. Every new CAC issued this week is being rejected. 300 soldiers can't log in.",
+      title: "EMERGENCY: Install DoD root certificates (new CACs rejected)",
+      window: "Immediately",
+      justification: "This is the same package I asked to install a month ago. It's still tested. It's still ready."
+    }
+  },
+  {
+    id: "UP-062", title: "Time zone patch for a daylight saving rule change",
+    requester: "nakamura", type: "Normal", statedRisk: "Low",
+    systems: ["NIPR Workstations", "Domain Controllers"], window: "Tue 1500-1530",
+    rollback: "solid", testing: "yes", hiddenRisk: "Low",
+    justification: "A partner country changed its daylight saving date. Our calendar invites to them are an hour off. I tested it by booking a meeting with myself in their time zone."
+  },
+  {
+    id: "UP-063", title: "Upgrade the office suite to the new major version",
+    requester: "menon", type: "Normal", statedRisk: "Medium",
+    systems: ["NIPR Workstations"], window: "Over 2 weeks",
+    rollback: "weak", testing: "partial", hiddenRisk: "High",
+    justification: "Modernization roadmap, phase 3. New version changes file handling and macros. 4,000 legacy templates and forms not tested."
+  },
+  {
+    id: "UP-064", title: "SIPR browser minor update",
+    requester: "patchbot", type: "Standard", catalogueId: "SC-08", statedRisk: "Low",
+    systems: ["SIPR Workstations"], window: "Wed 0300 (automatic)",
+    rollback: "solid", testing: "yes", hiddenRisk: "Low",
+    justification: "BEEP. MINOR VERSION FOR SIPR. ALL TESTS PASS. SIPR PILOT RING FIRST. BEEP."
+  },
+  {
+    id: "UP-065", title: "Disable old TLS versions on workstations",
+    requester: "morgan", type: "Normal", statedRisk: "Medium",
+    systems: ["NIPR Workstations"], window: "Thu 1700",
+    rollback: "solid", testing: "partial", hiddenRisk: "High",
+    justification: "STIG item. Modern sites work fine. Some ancient internal systems may only speak old TLS. We'll find out which by Friday morning."
+  },
+  {
+    id: "UP-066", title: "Enable credential protection features on workstations",
+    requester: "morgan", type: "Normal", statedRisk: "Medium",
+    systems: ["NIPR Workstations"], window: "Sat 0700",
+    rollback: "weak", testing: "partial", hiddenRisk: "Medium",
+    justification: "Stops attackers stealing passwords from memory. Requires certain hardware features. Older machines may not boot correctly with it on."
+  },
+  {
+    id: "UP-067", title: "Update mapping and GPS software on tactical laptops",
+    requester: "reyes", type: "Normal", statedRisk: "Low",
+    systems: ["Tactical Laptops"], window: "Tue 0800-1200",
+    rollback: "solid", testing: "partial", hiddenRisk: "Medium",
+    justification: "New version fixes coordinate display bugs. Tested on 3 laptops. The GPS pucks are an older model on some laptops."
+  },
+  {
+    id: "UP-068", title: "Update the remote desktop client for admins",
+    requester: "jackson", type: "Normal", statedRisk: "Low",
+    systems: ["NIPR Workstations"], window: "Tue 1400-1415",
+    rollback: "solid", testing: "yes", hiddenRisk: "Low",
+    justification: "Security fix. Twelve admin workstations. Tested."
+  },
+  {
+    id: "UP-069", title: "Upgrade the help desk's remote support tool",
+    requester: "ortiz", type: "Normal", statedRisk: "Medium",
+    systems: ["NIPR Workstations"], window: "Thu 1800-1900",
+    rollback: "solid", testing: "partial", hiddenRisk: "Medium",
+    justification: "Old version is end of support. Agent updates on every workstation. If the new agent misbehaves, the help desk can't remote in to fix it."
+  },
+  {
+    id: "UP-070", title: "Install the vendor's remote support tool on every workstation",
+    requester: "brandt", type: "Normal", statedRisk: "Low",
+    systems: ["NIPR Workstations"], window: "This week",
+    rollback: "weak", testing: "none", hiddenRisk: "High",
+    justification: "Value-add: our engineers can connect to any of your 6,000 workstations directly from our office. Super convenient for everyone.",
+    rejectedReport: "Kyle told his program manager that the government 'doesn't want help'. The program manager forwarded this to the contracting officer, who forwarded it to you, with a smiley face."
+  },
+  {
+    id: "UP-071", title: "Deploy the approved password manager",
+    requester: "morgan", type: "Normal", statedRisk: "Low",
+    systems: ["NIPR Workstations"], window: "Over 1 week",
+    rollback: "solid", testing: "partial", hiddenRisk: "Low",
+    justification: "For the few systems that still need passwords. Better than sticky notes on monitors (inspection photo attached)."
+  },
+  {
+    id: "UP-072", title: "Block a malicious browser extension",
+    requester: "morgan", type: "Emergency", statedRisk: "Low",
+    systems: ["NIPR Workstations"], window: "Immediately",
+    rollback: "solid", testing: "yes", hiddenRisk: "Low",
+    justification: "A 'free PDF converter' extension is stealing session cookies. 60 users installed it. Block and remove by policy."
+  },
+  {
+    id: "UP-073", title: "Allow only approved browser extensions",
+    requester: "morgan", type: "Normal", statedRisk: "Medium",
+    systems: ["NIPR Workstations"], window: "Tue 1600-1630",
+    rollback: "solid", testing: "partial", hiddenRisk: "Medium",
+    justification: "After the converter incident. Approved list of 14 extensions. Every other extension gets removed. Some people will lose extensions they rely on."
+  },
+  {
+    id: "UP-074", title: "Install my favourite network tool on all servers",
+    requester: "kowalski", type: "Normal", statedRisk: "Low",
+    systems: ["Virtualization Cluster", "File Servers"], window: "Tue 1100",
+    rollback: "weak", testing: "none", hiddenRisk: "Medium",
+    justification: "It's a great free tool. I use it at home. It's not on the approved list but it's open source, so it's safe."
+  },
+  {
+    id: "UP-075", title: "Update the IT section's admin scripting tools",
+    requester: "nakamura", type: "Normal", statedRisk: "Low",
+    systems: ["NIPR Workstations"], window: "Tue 1300-1330",
+    rollback: "solid", testing: "yes", hiddenRisk: "Low",
+    justification: "Approved tools, newer version. Only on the 8 IT section machines. I tested all my scripts with it. They all still work. I was very relieved."
+  },
+  {
+    id: "UP-076", title: "Move weekly full-disk scans to lunchtime",
+    requester: "kowalski", type: "Normal", statedRisk: "Low",
+    systems: ["Endpoint Security Suite", "NIPR Workstations"], window: "Starting Monday",
+    rollback: "solid", testing: "none", hiddenRisk: "Medium",
+    justification: "Scans run Sunday night and some machines are off. At lunch, everything's on. Everyone's at lunch anyway, right?"
+  },
+  {
+    id: "UP-077", title: "Install the Mission Command hotfix the vendor emailed me",
+    requester: "brandt", type: "Emergency", statedRisk: "Low",
+    systems: ["Mission Command Software", "Mission Command Servers"], window: "Immediately",
+    rollback: "weak", testing: "none", hiddenRisk: "High",
+    justification: "An engineer emailed me a hotfix as a zip file. It's not on the official site yet. He says it fixes everything."
+  },
+  {
+    id: "UP-078", title: "Apply official Mission Command hotfix",
+    requester: "reyes", type: "Emergency", statedRisk: "Medium",
+    systems: ["Mission Command Software", "Mission Command Servers"], window: "Tonight",
+    rollback: "solid", testing: "partial", hiddenRisk: "Medium",
+    justification: "Program office released an official hotfix for the crash that's hitting the TOC. Signed package. Tested on the training server for 4 hours."
+  },
+  {
+    id: "UP-079", title: "Disable Wi-Fi and Bluetooth on tactical laptops for OPSEC",
+    requester: "morgan", type: "Normal", statedRisk: "Low",
+    systems: ["Tactical Laptops"], window: "Thu 0900-1000",
+    rollback: "solid", testing: "partial", hiddenRisk: "Medium",
+    justification: "Radios on laptops can give away a TOC's position. Policy disables them. Some laptops use Bluetooth for their GPS puck."
+  },
+  {
+    id: "UP-080", title: "Update firmware on VoIP desk phones",
+    requester: "ortiz", type: "Normal", statedRisk: "Medium",
+    systems: ["VoIP Call Manager"], window: "Sat 0600-0800",
+    rollback: "solid", testing: "partial", hiddenRisk: "Medium",
+    justification: "1,200 phones update themselves when they reboot. Tested on 20. If the firmware server gets overwhelmed, phones wait in a boot loop."
+  },
+  {
+    id: "UP-081", title: "Update VTC endpoint firmware the day before the General's visit",
+    requester: "whitfield", type: "Normal", statedRisk: "Low",
+    systems: ["VTC Bridge"], window: "Day before the visit",
+    rollback: "weak", testing: "none", hiddenRisk: "High",
+    justification: "The XO wants the conference room VTC 'fully up to date' for the General. Update everything the day before. Fresh is best."
+  },
+  {
+    id: "UP-082", title: "Update VTC endpoint firmware after the visit",
+    requester: "reyes", type: "Normal", statedRisk: "Low",
+    systems: ["VTC Bridge"], window: "Tue after the visit, 1700-1800",
+    rollback: "solid", testing: "yes", hiddenRisk: "Low",
+    justification: "Same firmware the XO wanted, but after the visit, tested on the training room unit first."
+  },
+  {
+    id: "UP-083", title: "Update the warehouse barcode scanner software",
+    requester: "albright", type: "Normal", statedRisk: "Low",
+    systems: ["NIPR Workstations", "Logistics Database"], window: "Sat 0700-0800",
+    rollback: "solid", testing: "partial", hiddenRisk: "Low",
+    justification: "Scanners mis-read the new property labels. Vendor update tested with 50 labels. Warehouse closed Saturday."
+  },
+  {
+    id: "UP-084", title: "Install vehicle diagnostic software in the motor pool",
+    requester: "kowalski", type: "Normal", statedRisk: "Low",
+    systems: ["NIPR Workstations", "Motor Pool Switches"], window: "Tue 0800-1000",
+    rollback: "solid", testing: "partial", hiddenRisk: "Medium",
+    justification: "Approved software this time. Really. The program office sent it. Tested on one laptop. The trucks are waiting."
+  },
+  {
+    id: "UP-085", title: "Update the clinic appointment client",
+    requester: "ortiz", type: "Normal", statedRisk: "Medium",
+    systems: ["NIPR Workstations", "Clinic Switches"], window: "Sun 0600-0800",
+    rollback: "solid", testing: "partial", hiddenRisk: "Medium",
+    justification: "Required by the medical command. Tested with clinic staff on 4 machines. Clinic opens at 0730 Monday."
+  },
+  {
+    id: "UP-086", title: "Uninstall the old VPN client",
+    requester: "nakamura", type: "Normal", statedRisk: "Low",
+    systems: ["NIPR Workstations"], window: "Thu 1600-1700",
+    rollback: "solid", testing: "partial", hiddenRisk: "Medium",
+    justification: "The new VPN client is installed on everything. I think. The removal script removes the old one. If the new one isn't there, people can't telework."
+  },
+  {
+    id: "UP-087", title: "Roll out the new VPN client",
+    requester: "morgan", type: "Normal", statedRisk: "Medium",
+    systems: ["NIPR Workstations", "NIPR Perimeter Firewall"], window: "Over 2 weeks",
+    rollback: "solid", testing: "partial", hiddenRisk: "Medium",
+    justification: "Old client has a known vulnerability. New client tested with 100 teleworkers for 2 weeks. Both clients can coexist during rollout.",
+    returnsAsEmergency: {
+      reason: "Attackers are exploiting the old VPN client's vulnerability against military networks. Higher HQ wants it gone in 48 hours.",
+      title: "EMERGENCY: Replace vulnerable VPN client within 48 hours",
+      window: "Immediately",
+      hiddenRisk: "High",
+      justification: "Same client, same package. Instead of 2 weeks, it's 2 days."
+    }
+  },
+  {
+    id: "UP-088", title: "Catch-up patching for 400 machines that missed the cycle",
+    requester: "patchbot", type: "Normal", statedRisk: "Low",
+    systems: ["NIPR Workstations", "Patch Server"], window: "Tue 0200 (automatic)",
+    rollback: "solid", testing: "yes", hiddenRisk: "Low",
+    justification: "BEEP. 400 MACHINES WERE OFF DURING PATCHING. SAME PATCHES EVERYONE ELSE GOT. ALREADY PROVEN ON 5,600 MACHINES. BEEP."
+  },
+  {
+    id: "UP-089", title: "Force restart of machines with pending updates at 1700",
+    requester: "morgan", type: "Normal", statedRisk: "Low",
+    systems: ["NIPR Workstations"], window: "Daily 1700",
+    rollback: "solid", testing: "partial", hiddenRisk: "Medium",
+    justification: "Patches don't apply until restart. People never restart. 15-minute warning, then restart. Staff working late will lose unsaved work."
+  },
+  {
+    id: "UP-090", title: "Disable operating system telemetry",
+    requester: "morgan", type: "Normal", statedRisk: "Low",
+    systems: ["NIPR Workstations", "SIPR Workstations"], window: "Tue 1600-1630",
+    rollback: "solid", testing: "yes", hiddenRisk: "Low",
+    justification: "STIG item. Policy settings only. Tested on all workstation images."
+  },
+  {
+    id: "UP-091", title: "Enable script logging to the SIEM",
+    requester: "morgan", type: "Normal", statedRisk: "Low",
+    systems: ["NIPR Workstations", "SIEM Log Servers"], window: "Thu 1000-1030",
+    rollback: "solid", testing: "yes", hiddenRisk: "Low",
+    justification: "Attackers love scripts. This records them. Log volume measured in pilot: manageable."
+  },
+  {
+    id: "UP-092", title: "Remove card games from every workstation",
+    requester: "whitfield", type: "Normal", statedRisk: "Low",
+    systems: ["NIPR Workstations"], window: "Immediately",
+    rollback: "solid", testing: "none", hiddenRisk: "Low",
+    justification: "The Colonel walked past the S1 shop and saw someone playing Solitaire during duty hours. All games are to be removed from all computers.",
+    rejectedReport: "The Colonel saw Solitaire again. The XO has asked for 'a timeline'. The S1 clerk has switched to Minesweeper."
+  },
+  {
+    id: "UP-093", title: "Install encryption software for coalition email",
+    requester: "albright", type: "Normal", statedRisk: "Medium",
+    systems: ["NIPR Workstations", "Mail Servers"], window: "Thu 1700-1800",
+    rollback: "solid", testing: "partial", hiddenRisk: "Medium",
+    justification: "The partner nation requires their encryption for exercise email. Software approved by Cyber. 40 staff officers only. Tested with the partner's test account."
+  },
+  {
+    id: "UP-094", title: "Patch tactical laptops before tomorrow's deployment",
+    requester: "reyes", type: "Emergency", statedRisk: "Medium",
+    systems: ["Tactical Laptops"], window: "Tonight",
+    rollback: "solid", testing: "partial", hiddenRisk: "Medium",
+    justification: "Company deploys at 0600. Their laptops are 3 months behind on patches. The network they're joining will block unpatched devices."
+  },
+  {
+    id: "UP-095", title: "Update the geospatial software on Mission Command servers",
+    requester: "reyes", type: "Normal", statedRisk: "Medium",
+    systems: ["Mission Command Servers", "Mission Command Software"], window: "Sat 0600-0900",
+    rollback: "solid", testing: "partial", hiddenRisk: "Medium",
+    justification: "New version needed for the updated map formats. Tested on the training server. Some old map overlays may need converting."
+  },
+  {
+    id: "UP-096", title: "Re-image SIPR workstation after a spillage incident",
+    requester: "morgan", type: "Standard", catalogueId: "SC-10", statedRisk: "Low",
+    systems: ["SIPR Workstations"], window: "Tue 0900-1100",
+    rollback: "solid", testing: "yes", hiddenRisk: "Low",
+    justification: "One workstation. Current gold image. Security officer has cleared it for re-image. User data backed up under supervision."
+  },
+  {
+    id: "UP-097", title: "Kiosk mode for the barracks computer lab",
+    requester: "ortiz", type: "Normal", statedRisk: "Low",
+    systems: ["NIPR Workstations", "Barracks Switches"], window: "Tue 1300-1400",
+    rollback: "solid", testing: "partial", hiddenRisk: "Low",
+    justification: "Soldiers keep installing things on the lab PCs. Kiosk mode resets them every logoff. Tested on 2 of 12."
+  },
+  {
+    id: "UP-098", title: "Upgrade backup agents on all servers",
+    requester: "jackson", type: "Normal", statedRisk: "Medium",
+    systems: ["Backup Servers", "File Servers", "Domain Controllers"], window: "Sat 0800-1200",
+    rollback: "solid", testing: "partial", hiddenRisk: "Medium",
+    justification: "Backup server was upgraded; agents must match. Tested on 6 servers. If an agent fails, that server's backup fails silently until someone notices."
+  },
+  {
+    id: "UP-099", title: "Monitoring agent minor update on servers",
+    requester: "patchbot", type: "Standard", catalogueId: "SC-08", statedRisk: "Low",
+    systems: ["Network Monitoring System"], window: "Wed 0200 (automatic)",
+    rollback: "solid", testing: "yes", hiddenRisk: "Low",
+    justification: "BEEP. 3.4.1 TO 3.4.2. ALL TESTS PASS. PILOT ON 10 SERVERS. AUTOMATIC ROLLBACK. BEEP."
+  },
+  {
+    id: "UP-100", title: "Apply the STIG baseline to all workstations",
+    requester: "menon", type: "Normal", statedRisk: "Medium",
+    systems: ["NIPR Workstations"], window: "Sat 0000",
+    rollback: "weak", testing: "partial", hiddenRisk: "High",
+    justification: "Every workstation hardened in one pass (STIG compliance roadmap, slide 1 of 74). Tested on generic lab machines. Some sections have specialised software."
+  },
+  {
+    id: "UP-101", title: "Pilot the STIG baseline on the S6 section",
+    requester: "nakamura", type: "Normal", statedRisk: "Low",
+    systems: ["NIPR Workstations"], window: "Tue 1600-1700",
+    rollback: "solid", testing: "yes", hiddenRisk: "Low",
+    justification: "Before Mr. Menon applies it everywhere, I'd like to try it on our own section first. Twelve machines. If something breaks, it's us who suffer. That seems fair."
+  },
+  {
+    id: "UP-102", title: "Push endpoint definitions to everyone, skipping the pilot (standard)",
+    requester: "kowalski", type: "Standard", catalogueId: "SC-04", statedRisk: "Low",
+    systems: ["Endpoint Security Suite", "NIPR Workstations"], window: "Tue 0900",
+    rollback: "weak", testing: "none", hiddenRisk: "Medium",
+    justification: "Definition updates are standard. I'm just skipping the 2-hour pilot because I want to go home early."
+  },
+  {
+    id: "UP-103", title: "Update map data on tactical laptops by hand",
+    requester: "reyes", type: "Normal", statedRisk: "Low",
+    systems: ["Tactical Laptops"], window: "Thu 0800-1200",
+    rollback: "solid", testing: "partial", hiddenRisk: "Low",
+    justification: "Laptops in the field can't reach the server. Updated map package on scanned, approved media. Tested on 2 laptops."
+  },
+  {
+    id: "UP-104", title: "Install a beta operating system on the Colonel's laptop",
+    requester: "whitfield", type: "Normal", statedRisk: "Low",
+    systems: ["NIPR Workstations"], window: "This afternoon",
+    rollback: "weak", testing: "none", hiddenRisk: "High",
+    justification: "The Colonel read about a new operating system 'with AI' and wants to try it before anyone else. It's a public beta. He likes to lead from the front.",
+    rejectedReport: "The XO informed the Colonel that the CAB 'prefers outdated technology'. The Colonel has asked for a 'modernization brief' from you. Next week."
+  },
+  {
+    id: "UP-105", title: "Deploy a data loss prevention agent",
+    requester: "morgan", type: "Normal", statedRisk: "Medium",
+    systems: ["NIPR Workstations", "Endpoint Security Suite"], window: "Over 2 weeks",
+    rollback: "weak", testing: "partial", hiddenRisk: "Medium",
+    justification: "Detects sensitive data leaving by email or upload. Pilot found it also flags most PowerPoint files as 'sensitive'. Tuning continues."
+  },
+  {
+    id: "UP-106", title: "Update screen reader software for accessibility",
+    requester: "ortiz", type: "Normal", statedRisk: "Low",
+    systems: ["NIPR Workstations"], window: "Tue 1300-1330",
+    rollback: "solid", testing: "yes", hiddenRisk: "Low",
+    justification: "Four civilian employees use screen readers. The current version doesn't work with the new mail client. Tested with each user."
+  },
+  {
+    id: "UP-107", title: "Revert endpoint policy that blocks CAC readers",
+    requester: "morgan", type: "Emergency", statedRisk: "Low",
+    systems: ["Endpoint Security Suite", "NIPR Workstations"], window: "Immediately",
+    rollback: "solid", testing: "yes", hiddenRisk: "Low",
+    justification: "Yesterday's USB policy also blocked one model of CAC reader. 400 users can't log in. Revert that one setting. Tested on an affected machine."
+  },
+  {
+    id: "UP-108", title: "Upgrade the network monitoring system's database",
+    requester: "jackson", type: "Normal", statedRisk: "Low",
+    systems: ["Network Monitoring System"], window: "Sat 0600-0700",
+    rollback: "solid", testing: "partial", hiddenRisk: "Medium",
+    justification: "Database version is end of support. Tested upgrade on a copy. Monitoring stops during the upgrade."
+  },
+  {
+    id: "UP-109", title: "Let PATCHBOT deploy to SIPR automatically",
+    requester: "patchbot", type: "Normal", statedRisk: "Low",
+    systems: ["SIPR Workstations", "Patch Server"], window: "Continuous",
+    rollback: "weak", testing: "partial", hiddenRisk: "High",
+    justification: "BEEP. PATCHBOT IS NOT ALLOWED ON SIPR. PATCHBOT DOES NOT UNDERSTAND WHY. PATCHBOT WOULD LIKE TO BRIDGE THE NETWORKS FOR EFFICIENCY. BEEP."
+  },
+  {
+    id: "UP-110", title: "Update the software license server",
+    requester: "brandt", type: "Normal", statedRisk: "Low",
+    systems: ["Virtualization Cluster"], window: "Tue 1000",
+    rollback: "solid", testing: "partial", hiddenRisk: "Medium",
+    justification: "Value-add license server update. While it restarts, licensed applications can't check out licenses. Usually users don't notice. Usually."
+  }
+);
