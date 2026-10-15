@@ -5,6 +5,13 @@
    requests). You can edit or add entries here without touching the
    game logic in game.js.
 
+   WHAT'S IN HERE (in order)
+   - CHARACTERS:          the recurring requesters and their reactions
+   - RFCS:                the pool of change requests (3-5 are dealt per meeting)
+   - GENERIC_REPORTS:     fallback incident report text
+   - MEETING_INTROS:      scene-setting lines shown before each meeting
+   - PERFORMANCE_RATINGS: end-of-week titles and jokes
+
    HOW TO ADD A NEW CHANGE REQUEST (RFC)
    1. Copy one of the { ... } blocks inside RFCS below.
    2. Paste it after the last one (keep the comma between blocks!).
@@ -83,6 +90,26 @@ const CHARACTERS = {
       approve: "Linda says 'thank you, dear' and swaps the part in under 5 minutes.",
       reject: "Linda reminds everyone this is a pre-approved Standard change. Twice.",
       sendBack: "Linda sends back the exact same form, now in Comic Sans."
+    }
+  },
+  kyle: {
+    name: "Kyle Brandt",
+    role: "Account Manager, CloudSyncly (vendor)",
+    personality: "Calls every patch a 'value-add'. Has never seen a change window.",
+    reactions: {
+      approve: "Kyle thanks you for 'partnering on this journey' and logs in remotely. From an airport.",
+      reject: "Kyle mentions, casually, that your support contract renews next month.",
+      sendBack: "Kyle forwards your question to 'the engineering folks'. They are in another time zone."
+    }
+  },
+  hannah: {
+    name: "Hannah Ortiz",
+    role: "Service Desk Manager",
+    personality: "Takes 400 calls a day. Is the only person who reads the change calendar.",
+    reactions: {
+      approve: "Hannah briefs her team so they know what's coming. Nobody else ever does this.",
+      reject: "Hannah sighs and adds a new canned response for 'yes, we know'.",
+      sendBack: "Hannah resubmits with a user comms plan attached. Again."
     }
   }
 };
@@ -185,8 +212,283 @@ const RFCS = [
     hiddenRisk: "Low",
     successReport:
       "New power supply installed. Linda labelled it, by hand, in a font that predates computers."
+  },
+  {
+    id: "CHG0006",
+    title: "Add a VLAN for the new 3rd-floor printers",
+    requester: "linda",
+    type: "Normal",
+    statedRisk: "Low",
+    systems: ["Core Network"],
+    window: "Thu 06:00 - 06:30",
+    rollback: "solid",
+    testing: "yes",
+    justification:
+      "Facilities bought 12 printers without asking anyone. They need their own network so they " +
+      "can't see payroll. Config is tested in the lab and the old config is saved.",
+    hiddenRisk: "Low",
+    outageReport:
+      "A typo briefly put the printers on the finance VLAN. Linda reverted in 4 minutes. The " +
+      "printers printed 900 pages of payroll data in that time. Facilities is 'looking into it'.",
+    successReport:
+      "Printers are online and isolated. They have already jammed, which is how we know they work."
+  },
+  {
+    id: "CHG0007",
+    title: "Turn on auto-scaling for the Web Platform",
+    requester: "dave",
+    type: "Normal",
+    statedRisk: "Medium",
+    systems: ["Web Platform"],
+    window: "Tue 21:00 - 22:00",
+    rollback: "solid",
+    testing: "partial",
+    justification:
+      "Site slows down every time Marketing sends an email. Load tested at 2x traffic, not 10x. " +
+      "Rollback is one toggle. I even wrote it down this time.",
+    hiddenRisk: "Medium",
+    outageReport:
+      "Auto-scaling scaled up to 400 servers, then down to zero, then back up. The cloud bill " +
+      "has its own incident ticket now.",
+    successReport:
+      "Marketing's email went out and the site stayed up. Dave has framed the graph."
+  },
+  {
+    id: "CHG0008",
+    title: "Connect new 'SalesRocket' CRM to the customer database",
+    requester: "brad",
+    type: "Normal",
+    statedRisk: "Low",
+    systems: ["Customer Database", "CRM"],
+    window: "Thursday afternoon (so everyone can see it go live!)",
+    rollback: "weak",
+    testing: "none",
+    justification:
+      "I signed the contract on Friday. The vendor says it's plug and play. The rollback plan is " +
+      "'unplug and unplay'. Sales needs this for Q3.",
+    hiddenRisk: "High",
+    outageReport:
+      "SalesRocket synced in both directions. Every customer is now called 'Test Test'. Some of " +
+      "them have received 41 welcome emails.",
+    successReport:
+      "Surprisingly, it works. SalesRocket has only duplicated each customer twice, which Brad " +
+      "calls 'pipeline growth'."
+  },
+  {
+    id: "CHG0009",
+    title: "Renew the TLS certificate on the public website",
+    requester: "morgan",
+    type: "Standard",
+    statedRisk: "Low",
+    systems: ["Web Platform"],
+    window: "Thu 08:00 - 08:15",
+    rollback: "solid",
+    testing: "yes",
+    justification:
+      "The certificate expires on Saturday. This is a Standard change from the catalogue. If we " +
+      "don't do it, every customer sees a giant red warning. Please. I'm begging.",
+    hiddenRisk: "Low",
+    successReport:
+      "Certificate renewed. The website remains trustworthy for another 90 days. Morgan has set 14 calendar reminders."
+  },
+  {
+    id: "CHG0010",
+    title: "Move the Orders Database to the new storage array",
+    requester: "priya",
+    type: "Normal",
+    statedRisk: "High",
+    systems: ["Orders Database"],
+    window: "Sat 01:00 - 05:00",
+    rollback: "solid",
+    testing: "yes",
+    justification:
+      "The old array is out of support and making clicking noises. This IS risky, so: three " +
+      "rehearsals, a full backup, a go/no-go checkpoint at 02:00, and the old array stays live until Monday.",
+    hiddenRisk: "Medium",
+    outageReport:
+      "Migration ran long and hit the 02:00 go/no-go. Priya called no-go and was back on the old " +
+      "array by 02:20. Nobody outside IT noticed. This is what good looks like.",
+    successReport:
+      "Migrated in 2 hours 10 minutes. Reports are faster. The clicking noise has stopped. Priya is unbearably calm about it."
+  },
+  {
+    id: "CHG0011",
+    title: "Apply vendor 'hotfix' to the HR system via remote session",
+    requester: "kyle",
+    type: "Normal",
+    statedRisk: "Low",
+    systems: ["HR System", "Payroll"],
+    window: "Whenever our engineer is free (probably Thursday?)",
+    rollback: "missing",
+    testing: "partial",
+    justification:
+      "This value-add hotfix was tested at another customer and they only had minor issues. Our " +
+      "engineer will connect remotely. Rollback is not supported for this version.",
+    hiddenRisk: "High",
+    outageReport:
+      "The hotfix fixed the bug and also deleted the payroll schedule. Kyle says this is a " +
+      "'known behaviour'. Payday is in three days.",
+    successReport:
+      "Hotfix applied. The HR system works. Kyle has sent an invoice for 'professional services'."
+  },
+  {
+    id: "CHG0012",
+    title: "Reword the password reset page",
+    requester: "hannah",
+    type: "Standard",
+    statedRisk: "Low",
+    systems: ["Self-Service Portal"],
+    window: "Tue 12:00 - 12:10",
+    rollback: "solid",
+    testing: "yes",
+    justification:
+      "The button says 'Initiate Credential Recovery Workflow'. Users don't click it, they call us. " +
+      "Changing it to 'Forgot your password?' could save 60 calls a day.",
+    hiddenRisk: "Low",
+    successReport:
+      "Password reset calls dropped 40% by lunchtime. Hannah's team ate lunch at an actual table."
+  },
+  {
+    id: "CHG0013",
+    title: "Decommission 'unused' logging servers to save money",
+    requester: "dave",
+    type: "Normal",
+    statedRisk: "Low",
+    systems: ["Logging Platform"],
+    window: "Tue 17:00 - 17:05",
+    rollback: "missing",
+    testing: "none",
+    justification:
+      "Nobody has logged into these servers in a year. They cost a fortune. Five minutes, " +
+      "power off, done. What's the worst that could happen?",
+    hiddenRisk: "Medium",
+    outageReport:
+      "The servers weren't unused: they hold the audit logs. Security monitoring is now blind, " +
+      "and next quarter's audit evidence is gone.",
+    successReport:
+      "Servers powered off. Saved $4,000 a month. Nobody has noticed yet. That word 'yet' is doing a lot of work."
+  },
+  {
+    id: "CHG0014",
+    title: "Turn on multi-factor authentication for all staff",
+    requester: "morgan",
+    type: "Normal",
+    statedRisk: "Medium",
+    systems: ["Identity Platform"],
+    window: "Mon 09:00 (everyone at once)",
+    rollback: "weak",
+    testing: "partial",
+    justification:
+      "Phishing attempts tripled this month. Piloted with the IT team. Rolling out to all 2,000 staff " +
+      "at 9am Monday because it's 'the cleanest cutover'.",
+    hiddenRisk: "Medium",
+    outageReport:
+      "2,000 people tried to set up MFA at 9:00 on Monday. The service desk phone system went " +
+      "down first. Hannah has gone very quiet.",
+    successReport:
+      "MFA is live. Phishing success rate: zero. Complaints received: 1,400. Morgan considers this a win."
+  },
+  {
+    id: "CHG0015",
+    title: "Upgrade firewall firmware to v9.0.0 (released yesterday)",
+    requester: "kyle",
+    type: "Normal",
+    statedRisk: "Medium",
+    systems: ["Perimeter Firewall"],
+    window: "Thu 22:00 - 23:00",
+    rollback: "solid",
+    testing: "partial",
+    justification:
+      "v9.0.0 is our most exciting release ever, with AI-powered threat detection. It was tested " +
+      "in our lab. You can always reinstall v8 if needed.",
+    hiddenRisk: "High",
+    outageReport:
+      "The AI-powered threat detection flagged all incoming traffic as a threat, including the " +
+      "firewall's own updates. Rolled back to v8. v9.0.1 is 'coming soon'.",
+    successReport:
+      "Firmware upgraded. The AI has detected one threat so far: Kyle's own remote session."
+  },
+  {
+    id: "CHG0016",
+    title: "Restore email for the CEO's assistant",
+    requester: "hannah",
+    type: "Emergency",
+    statedRisk: "Low",
+    systems: ["Email"],
+    window: "Right now",
+    rollback: "solid",
+    testing: "yes",
+    justification:
+      "Their mailbox hit the size limit and the board pack is stuck in it. Fix is a quota increase, " +
+      "same as we've done 30 times. Raising it as an Emergency because the board meets at 2pm.",
+    hiddenRisk: "Low",
+    successReport:
+      "Mailbox restored. The board pack arrived at 1:52pm. The CEO's assistant has sent Hannah a muffin."
+  },
+  {
+    id: "CHG0017",
+    title: "Add a 'Buy Now' button to the login page",
+    requester: "brad",
+    type: "Normal",
+    statedRisk: "Low",
+    systems: ["Web Platform"],
+    window: "Tue 20:00 - 20:30",
+    rollback: "weak",
+    testing: "partial",
+    justification:
+      "Customers who log in are customers who want to buy. Why make them wait until AFTER login? " +
+      "The web team says it's 'technically possible but philosophically confusing'.",
+    hiddenRisk: "Low",
+    outageReport:
+      "The 'Buy Now' button covered the 'Log In' button on mobile. Mobile logins down 90%. " +
+      "Mobile 'Buy Now' clicks up 300%, all of them by accident.",
+    successReport:
+      "Button added. Nobody has clicked it. Brad says it's 'building brand awareness'."
   }
 ];
+
+// Short scene-setting lines shown before each meeting (picked at random).
+const MEETING_INTROS = [
+  "The coffee is cold. Someone has joined the call from their car.",
+  "Three people are presenting the same slide. Nobody has unmuted.",
+  "The agenda was sent 4 minutes ago. Two RFCs were added during the meeting.",
+  "Someone's dog is barking. It has more questions than half the board.",
+  "The meeting room projector needs a change request to fix the projector.",
+  "Half the attendees are 'just listening in'. They are definitely answering emails."
+];
+
+// End-of-week performance titles. game.js decides WHICH one you get
+// (see getPerformanceRating). You can freely change the wording here.
+const PERFORMANCE_RATINGS = {
+  incidentFactory: {
+    title: "Chief Incident Officer",
+    blurb: "The service desk has your photo on the wall. Not in a good way."
+  },
+  wallOfNo: {
+    title: "The Wall of No",
+    blurb: "Nothing broke, because nothing happened. Leadership is drafting a 'blocker' org chart with you at the top."
+  },
+  needsMoreInfo: {
+    title: "Professional Procrastinator",
+    blurb: "Your favourite phrase is 'can we take this offline?' Your backlog has its own backlog."
+  },
+  rubberStamp: {
+    title: "Rubber Stamp Enthusiast",
+    blurb: "You approved almost everything. Some of it caught fire. You remain optimistic."
+  },
+  actuallyGood: {
+    title: "Actually Pretty Good At This",
+    blurb: "Changes went in, nothing broke. Nobody will ever thank you, which is how you know it went well."
+  },
+  cautious: {
+    title: "Cautiously Competent",
+    blurb: "No outages, but a fair few annoyed requesters. A respectable week of risk management."
+  },
+  mediocre: {
+    title: "Meets Expectations (Barely)",
+    blurb: "Some wins, some fires. Your annual review will use the word 'journey'."
+  }
+};
 
 // Used when an RFC has no outageReport / successReport of its own.
 const GENERIC_REPORTS = {

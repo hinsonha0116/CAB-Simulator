@@ -1,14 +1,17 @@
 /* =====================================================================
    CAB SIMULATOR - GAME LOGIC
-   This file holds the RULES. The content (RFCs, characters) lives in
-   data.js, which is loaded before this file, so CHARACTERS, RFCS and
-   GENERIC_REPORTS are already available here.
+   This file holds the RULES. The content (RFCs, characters, ratings)
+   lives in data.js, which is loaded before this file.
    ===================================================================== */
 
 // ---------------------------------------------------------------------
 // 1. GAME STATE - everything the game needs to remember while playing.
 // ---------------------------------------------------------------------
 const STARTING_METER_VALUE = 50;
+const MEETING_DAYS = ["Tuesday", "Thursday"]; // CAB meetings each week
+const MIN_RFCS_PER_MEETING = 3;
+const MAX_RFCS_PER_MEETING = 5;
+const WEEKEND_SANITY_BONUS = 5;               // a weekend off helps a bit
 
 let state = {}; // filled in by resetGame()
 
@@ -20,19 +23,63 @@ function resetGame() {
       audit: STARTING_METER_VALUE,
       sanity: STARTING_METER_VALUE
     },
-    agenda: [...RFCS],   // a copy of the RFC list for this meeting
-    currentIndex: 0,     // which RFC we're looking at (0 = first)
-    decisions: [],       // a log of what the player chose
-    reports: [],         // incident reports created after the meeting
+    week: 1,
+    meetingIndex: 0,     // 0 = Tuesday, 1 = Thursday
+    deck: shuffle([...RFCS]), // RFCs waiting to be put on an agenda
+    agenda: [],          // the RFCs in the current meeting
+    currentIndex: 0,     // which RFC on the agenda we're looking at
+    // Every decision ever made, each stamped with its week and day:
+    // { week, day, rfc, decision, report }
+    history: [],
     nextIncidentNumber: 1042
   };
 }
 
+function currentDay() {
+  return MEETING_DAYS[state.meetingIndex];
+}
+
+// Handy filters over the history.
+function decisionsThisMeeting() {
+  return state.history.filter(h => h.week === state.week && h.day === currentDay());
+}
+function decisionsThisWeek() {
+  return state.history.filter(h => h.week === state.week);
+}
+
 // ---------------------------------------------------------------------
-// 2. RULES
+// 2. BUILDING AN AGENDA
 // ---------------------------------------------------------------------
 
-// 2a. IMMEDIATE effects of a decision, felt in the meeting room.
+// Shuffle a list into random order (the "Fisher-Yates" shuffle).
+function shuffle(list) {
+  for (let i = list.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [list[i], list[j]] = [list[j], list[i]];
+  }
+  return list;
+}
+
+// Deal 3-5 RFCs off the top of the deck. When the deck runs out,
+// reshuffle the whole pool so the game can keep going.
+function drawAgenda() {
+  const size = MIN_RFCS_PER_MEETING +
+    Math.floor(Math.random() * (MAX_RFCS_PER_MEETING - MIN_RFCS_PER_MEETING + 1));
+  const agenda = [];
+  while (agenda.length < size) {
+    if (state.deck.length === 0) {
+      state.deck = shuffle(RFCS.filter(rfc => !agenda.includes(rfc)));
+    }
+    agenda.push(state.deck.pop());
+  }
+  return agenda;
+}
+
+// ---------------------------------------------------------------------
+// 3. RULES
+// ---------------------------------------------------------------------
+
+// 3a. IMMEDIATE effects of a decision, felt in the meeting room.
 //     These only look at what's VISIBLE on the card.
 function getDecisionEffects(rfc, decision) {
   // Start with "no change" for every meter, then add things up.
@@ -67,7 +114,7 @@ function getDecisionEffects(rfc, decision) {
   return fx;
 }
 
-// 2b. What ACTUALLY happens to an approved change after the meeting.
+// 3b. What ACTUALLY happens to an approved change after the meeting.
 //     This is where the HIDDEN true risk matters.
 
 // Base chance of an outage for each hidden risk level (0.10 = 10%).
@@ -128,6 +175,25 @@ function resolveApprovedChange(rfc) {
   };
 }
 
+// 3c. End-of-week performance rating. Checked top to bottom: the
+//     first rule that matches wins. Titles and jokes live in data.js.
+function getPerformanceRating(entries) {
+  const total = entries.length;
+  const count = d => entries.filter(h => h.decision === d).length;
+  const approveRate = count("approve") / total;
+  const rejectRate = count("reject") / total;
+  const sendBackRate = count("sendBack") / total;
+  const outages = entries.filter(h => h.report && h.report.outcome === "outage").length;
+
+  if (outages >= 3) return PERFORMANCE_RATINGS.incidentFactory;
+  if (rejectRate >= 0.6) return PERFORMANCE_RATINGS.wallOfNo;
+  if (sendBackRate >= 0.5) return PERFORMANCE_RATINGS.needsMoreInfo;
+  if (approveRate >= 0.8 && outages >= 1) return PERFORMANCE_RATINGS.rubberStamp;
+  if (outages === 0 && approveRate >= 0.4) return PERFORMANCE_RATINGS.actuallyGood;
+  if (outages === 0) return PERFORMANCE_RATINGS.cautious;
+  return PERFORMANCE_RATINGS.mediocre;
+}
+
 // Small helpers
 function pickRandom(list) {
   return list[Math.floor(Math.random() * list.length)];
@@ -149,7 +215,7 @@ function isGameOver() {
 }
 
 // ---------------------------------------------------------------------
-// 3. DRAWING THE SCREEN - functions that update what the player sees.
+// 4. DRAWING THE SCREEN - functions that update what the player sees.
 // ---------------------------------------------------------------------
 
 // Show one screen and hide the others.
@@ -177,6 +243,17 @@ function renderMeters(fx = {}) {
   });
 }
 
+// The scene-setting screen before each meeting.
+function renderMeetingIntro(extraNote = "") {
+  document.getElementById("intro-title").textContent =
+    `Week ${state.week} · ${currentDay()} CAB, 10:00`;
+  document.getElementById("intro-text").textContent = pickRandom(MEETING_INTROS);
+  document.getElementById("intro-note").textContent = extraNote;
+  // The "how to play" text only needs showing at the very start.
+  const isFirstMeeting = state.week === 1 && state.meetingIndex === 0;
+  document.getElementById("intro-rules").classList.toggle("hidden", !isFirstMeeting);
+}
+
 // Pick a colour for a field value: green = good, yellow = meh, red = bad.
 function tag(text, colour) {
   return `<span class="tag ${colour}">${text}</span>`;
@@ -191,7 +268,7 @@ function renderCard(rfc) {
   const person = CHARACTERS[rfc.requester];
 
   document.getElementById("progress").textContent =
-    `RFC ${state.currentIndex + 1} of ${state.agenda.length}`;
+    `Week ${state.week} · ${currentDay()} CAB · RFC ${state.currentIndex + 1} of ${state.agenda.length}`;
 
   document.getElementById("rfc-card").innerHTML = `
     <span class="rfc-id">${rfc.id}</span>
@@ -252,52 +329,84 @@ function renderReport(report) {
   `;
 }
 
-function renderConsequences(totalFx) {
-  const list = document.getElementById("reports");
-  const outages = state.reports.filter(r => r.outcome === "outage").length;
+function renderConsequences(reports, totalFx) {
+  const outages = reports.filter(r => r.outcome === "outage").length;
 
   let intro;
-  if (state.reports.length === 0) {
+  if (reports.length === 0) {
     intro = "You approved nothing. Nothing broke. Nothing improved. The business is unsure what you're for.";
   } else if (outages === 0) {
     intro = "A quiet night. Every approved change went in cleanly.";
   } else {
-    intro = `The overnight change window produced ${outages} incident${outages > 1 ? "s" : ""}.`;
+    intro = `The change window after ${currentDay()}'s CAB produced ${outages} incident${outages > 1 ? "s" : ""}.`;
   }
 
-  list.innerHTML = `<p>${intro}</p>` + state.reports.map(renderReport).join("");
+  document.getElementById("consequences-title").textContent =
+    `After ${currentDay()}'s CAB: results`;
+  document.getElementById("reports").innerHTML =
+    `<p>${intro}</p>` + reports.map(renderReport).join("");
   renderMeters(totalFx);
+
+  // What does the "continue" button lead to?
+  const button = document.getElementById("btn-continue");
+  const isLastMeetingOfWeek = state.meetingIndex === MEETING_DAYS.length - 1;
+  if (isGameOver()) button.textContent = "Oh no";
+  else if (isLastMeetingOfWeek) button.textContent = "See week summary";
+  else button.textContent = `On to ${MEETING_DAYS[state.meetingIndex + 1]}'s CAB`;
 }
 
 const DECISION_LABELS = { approve: "Approved", reject: "Rejected", sendBack: "Sent back" };
 
-function renderEndScreen(gameOver) {
-  const title = document.getElementById("end-title");
-  const summary = document.getElementById("end-summary");
+// Shared by the week summary and game over screen: stats + decision list.
+function renderStats(entries) {
+  const count = d => entries.filter(h => h.decision === d).length;
+  const outages = entries.filter(h => h.report && h.report.outcome === "outage").length;
 
-  if (gameOver) {
-    const deadMeter = Object.keys(state.meters).find(m => state.meters[m] <= 0);
-    title.textContent = "GAME OVER";
-    summary.innerHTML = `<p>${GAME_OVER_MESSAGES[deadMeter]}</p>`;
-  } else {
-    title.textContent = "Meeting adjourned";
-    summary.innerHTML = "<p>You survived the Tuesday CAB.</p>";
-  }
-
-  const outages = state.reports.filter(r => r.outcome === "outage").length;
-  const count = d => state.decisions.filter(x => x.decision === d).length;
-  summary.innerHTML += `
-    <p><strong>${state.decisions.length}</strong> changes processed:
-       ${count("approve")} approved, ${count("reject")} rejected, ${count("sendBack")} sent back.
-       <br><strong>${outages}</strong> outage${outages === 1 ? "" : "s"} caused.</p>
-  `;
-
-  const items = state.decisions.map(d => {
-    const report = state.reports.find(r => r.rfc === d.rfc);
-    const result = report ? ` (${report.label.toLowerCase()})` : "";
-    return `<li><strong>${d.rfc.id}</strong> ${d.rfc.title}: ${DECISION_LABELS[d.decision]}${result}</li>`;
+  const items = entries.map(h => {
+    const result = h.report ? ` (${h.report.label.toLowerCase()})` : "";
+    return `<li><span class="when">${h.day.slice(0, 3)}</span> <strong>${h.rfc.id}</strong> ` +
+      `${h.rfc.title}: ${DECISION_LABELS[h.decision]}${result}</li>`;
   }).join("");
-  summary.innerHTML += `<ul>${items}</ul>`;
+
+  return `
+    <div class="stats">
+      <div><span class="stat-number">${entries.length}</span>changes processed</div>
+      <div><span class="stat-number">${count("approve")}</span>approved</div>
+      <div><span class="stat-number">${count("reject")}</span>rejected</div>
+      <div><span class="stat-number">${count("sendBack")}</span>sent back</div>
+      <div><span class="stat-number ${outages ? "bad" : ""}">${outages}</span>outage${outages === 1 ? "" : "s"} caused</div>
+    </div>
+    <ul class="decision-list">${items}</ul>
+  `;
+}
+
+function renderWeekSummary() {
+  const entries = decisionsThisWeek();
+  const rating = getPerformanceRating(entries);
+
+  document.getElementById("week-title").textContent = `Week ${state.week} complete`;
+  document.getElementById("week-summary").innerHTML = `
+    <div class="rating">
+      <p class="rating-label">Performance rating</p>
+      <p class="rating-title">${rating.title}</p>
+      <p>${rating.blurb}</p>
+    </div>
+    ${renderStats(entries)}
+  `;
+  document.getElementById("btn-next-week").textContent = `Start week ${state.week + 1}`;
+}
+
+function renderGameOver() {
+  const deadMeter = Object.keys(state.meters).find(m => state.meters[m] <= 0);
+  const weeks = state.week === 1 ? "1 week" : `${state.week} weeks`;
+
+  document.getElementById("end-title").textContent = "GAME OVER";
+  document.getElementById("end-summary").innerHTML = `
+    <p>${GAME_OVER_MESSAGES[deadMeter]}</p>
+    <p>You chaired the CAB for <strong>${weeks}</strong>, until ${currentDay()}.
+       Your whole career:</p>
+    ${renderStats(state.history)}
+  `;
 }
 
 const GAME_OVER_MESSAGES = {
@@ -308,13 +417,23 @@ const GAME_OVER_MESSAGES = {
 };
 
 // ---------------------------------------------------------------------
-// 4. EVENTS - what happens when the player clicks things.
+// 5. EVENTS - what happens when the player clicks things.
+//    The flow is:  intro -> meeting -> results -> (next meeting's intro
+//    OR week summary -> next week's intro)  ...until a meter hits 0.
 // ---------------------------------------------------------------------
-function startMeeting() {
+function newGame() {
   resetGame();
   renderMeters();
+  renderMeetingIntro();
+  showScreen("screen-intro");
+}
+
+function startMeeting() {
+  state.agenda = drawAgenda();
+  state.currentIndex = 0;
+  renderMeters();
   showScreen("screen-meeting");
-  renderCard(state.agenda[state.currentIndex]);
+  renderCard(state.agenda[0]);
 }
 
 function makeDecision(decision) {
@@ -322,7 +441,7 @@ function makeDecision(decision) {
   const fx = getDecisionEffects(rfc, decision);
 
   applyEffects(fx);
-  state.decisions.push({ rfc, decision });
+  state.history.push({ week: state.week, day: currentDay(), rfc, decision, report: null });
   renderMeters(fx);
 
   // Show the requester's reaction and stop more clicks on this card.
@@ -331,7 +450,7 @@ function makeDecision(decision) {
   setDecisionButtonsEnabled(false);
 
   if (isGameOver()) {
-    renderEndScreen(true);
+    renderGameOver();
     // Short pause so the player sees the meter drop before game over.
     setTimeout(() => showScreen("screen-end"), 1200);
     return;
@@ -356,36 +475,55 @@ function nextCard() {
 // The meeting is over: roll the dice for every approved change.
 function endMeeting() {
   const totalFx = { stability: 0, leadership: 0, audit: 0, sanity: 0 };
+  const reports = [];
 
-  state.decisions
-    .filter(d => d.decision === "approve")
-    .forEach(d => {
-      const report = resolveApprovedChange(d.rfc);
-      state.reports.push(report);
-      applyEffects(report.fx);
-      for (const m in report.fx) totalFx[m] += report.fx[m];
+  decisionsThisMeeting()
+    .filter(h => h.decision === "approve")
+    .forEach(h => {
+      h.report = resolveApprovedChange(h.rfc);
+      reports.push(h.report);
+      applyEffects(h.report.fx);
+      for (const m in h.report.fx) totalFx[m] += h.report.fx[m];
     });
 
-  renderConsequences(totalFx);
+  renderConsequences(reports, totalFx);
   showScreen("screen-consequences");
 }
 
-// After reading the incident reports, go to the summary (or game over).
+// After reading the incident reports: game over, next meeting, or week summary.
 function afterConsequences() {
   renderMeters();
-  renderEndScreen(isGameOver());
-  showScreen("screen-end");
+  if (isGameOver()) {
+    renderGameOver();
+    showScreen("screen-end");
+  } else if (state.meetingIndex < MEETING_DAYS.length - 1) {
+    state.meetingIndex++;
+    renderMeetingIntro();
+    showScreen("screen-intro");
+  } else {
+    renderWeekSummary();
+    showScreen("screen-week");
+  }
+}
+
+function startNextWeek() {
+  state.week++;
+  state.meetingIndex = 0;
+  applyEffects({ sanity: WEEKEND_SANITY_BONUS });
+  renderMeters({ sanity: WEEKEND_SANITY_BONUS });
+  renderMeetingIntro(`The weekend restored a little sanity (+${WEEKEND_SANITY_BONUS}).`);
+  showScreen("screen-intro");
 }
 
 // Connect buttons to the functions above.
 document.getElementById("btn-start").addEventListener("click", startMeeting);
 document.getElementById("btn-next").addEventListener("click", nextCard);
 document.getElementById("btn-continue").addEventListener("click", afterConsequences);
-document.getElementById("btn-restart").addEventListener("click", startMeeting);
+document.getElementById("btn-next-week").addEventListener("click", startNextWeek);
+document.getElementById("btn-restart").addEventListener("click", newGame);
 document.querySelectorAll("#decision-buttons button").forEach(button => {
   button.addEventListener("click", () => makeDecision(button.dataset.decision));
 });
 
-// Draw the meters once when the page first loads.
-resetGame();
-renderMeters();
+// Set up the first meeting when the page loads.
+newGame();

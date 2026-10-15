@@ -159,5 +159,53 @@ button.sendback { background: var(--warn); }
 .report-meta { color: var(--muted); font-size: 0.85rem; }
 .report-fx { font-size: 0.85rem; font-weight: 600; }
 
-/* ---------- End screen ---------- */
-#end-summary ul { padding-left: 20px; }
+/* ---------- Meeting intro ---------- */
+.note { color: var(--good); font-weight: 600; }
+.note:empty { display: none; }
+
+/* ---------- Week summary and game over ---------- */
+.rating {
+  text-align: center;
+  border: 2px dashed var(--border);
+  border-radius: 10px;
+  padding: 12px 16px;
+  margin-bottom: 16px;
+}
+.rating p { margin: 4px 0; }
+.rating-label {
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+.rating-title { font-size: 1.6rem; font-weight: 800; color: var(--accent); }
+
+.stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.stats div {
+  background: #faf9f6;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 8px;
+  text-align: center;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+.stat-number {
+  display: block;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--text);
+}
+.stat-number.bad { color: var(--bad); }
+
+.decision-list { padding-left: 20px; }
+.decision-list .when {
+  font-family: Consolas, monospace;
+  font-size: 0.8rem;
+  color: var(--muted);
+}

@@ -37,13 +37,16 @@
   </section>
 
   <main>
-    <!-- SCREEN 1: start -->
-    <section id="screen-start" class="screen">
-      <h2>Tuesday CAB, 10:00</h2>
-      <p>Five change requests are on the agenda. The coffee is cold. Someone has joined the call
-        from their car.</p>
-      <p>For each request choose <strong>Approve</strong>, <strong>Reject</strong>, or
-        <strong>Send Back</strong> for more info. If any meter hits 0, you're done.</p>
+    <!-- SCREEN 1: intro before each meeting. game.js fills in the text. -->
+    <section id="screen-intro" class="screen">
+      <h2 id="intro-title"></h2>
+      <p id="intro-text"></p>
+      <p id="intro-rules">Each week has two CAB meetings, Tuesday and Thursday. For each change
+        request choose <strong>Approve</strong>, <strong>Reject</strong>, or
+        <strong>Send Back</strong> for more info. Approved changes get implemented after the
+        meeting, and that's when you find out how risky they really were.
+        If any meter hits 0, you're done.</p>
+      <p id="intro-note" class="note"></p>
       <button id="btn-start" class="primary">Call the meeting to order</button>
     </section>
 
@@ -62,12 +65,19 @@
 
     <!-- SCREEN 3: overnight incident reports for approved changes -->
     <section id="screen-consequences" class="screen hidden">
-      <h2>Overnight change window: results</h2>
+      <h2 id="consequences-title"></h2>
       <div id="reports"></div>
-      <button id="btn-continue" class="primary">See meeting summary</button>
+      <button id="btn-continue" class="primary">Continue</button>
     </section>
 
-    <!-- SCREEN 4: meeting over (or game over) -->
+    <!-- SCREEN 4: end-of-week summary and performance rating -->
+    <section id="screen-week" class="screen hidden">
+      <h2 id="week-title"></h2>
+      <div id="week-summary"></div>
+      <button id="btn-next-week" class="primary">Start next week</button>
+    </section>
+
+    <!-- SCREEN 5: game over -->
     <section id="screen-end" class="screen hidden">
       <h2 id="end-title"></h2>
       <div id="end-summary"></div>
