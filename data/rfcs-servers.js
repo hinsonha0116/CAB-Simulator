@@ -355,6 +355,7 @@ RFCS.push(
   },
   {
     id: "SV-047", title: "Restore encrypted file shares from backup",
+    after: { id: "SV-046", when: "implemented" },  // follow-up: see HOW-TO-ADD-SCENARIOS.md
     requester: "reyes", type: "Emergency", statedRisk: "High",
     systems: ["File Servers", "Backup Servers"], window: "Immediately",
     rollback: "solid", testing: "partial", hiddenRisk: "Medium",
@@ -362,6 +363,7 @@ RFCS.push(
   },
   {
     id: "SV-048", title: "Reset the domain's master Kerberos key",
+    after: { id: "SV-046", when: "seen" },  // follow-up: see HOW-TO-ADD-SCENARIOS.md
     requester: "morgan", type: "Normal", statedRisk: "High",
     systems: ["Domain Controllers"], window: "Sat 0200-0600",
     rollback: "solid", testing: "partial", hiddenRisk: "Medium",
@@ -688,6 +690,7 @@ RFCS.push(
   },
   {
     id: "SV-092", title: "Allow copiers to send scans through the mail relay",
+    after: { id: "SV-027", when: "implemented" },  // follow-up: see HOW-TO-ADD-SCENARIOS.md
     requester: "nakamura", type: "Normal", statedRisk: "Low",
     systems: ["Mail Servers", "Print Servers"], window: "Thu 1400-1430",
     rollback: "solid", testing: "partial", hiddenRisk: "Medium",

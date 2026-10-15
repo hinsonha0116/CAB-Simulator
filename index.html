@@ -80,12 +80,18 @@
         press C). Some requesters stretch the definition.</p>
       <p id="intro-note" class="note"></p>
       <p id="intro-alert" class="alert"></p>
-      <button id="btn-start" class="primary">Open the change queue</button>
+      <div class="intro-buttons">
+        <!-- Only shown in week 1 (game.js toggles it). -->
+        <button id="btn-start-guided" class="primary hidden">Start the guided week with Chris</button>
+        <button id="btn-start" class="primary">Open the change queue</button>
+      </div>
     </section>
 
     <!-- SCREEN 2: reviewing the queue (one RFC card at a time) -->
     <section id="screen-meeting" class="screen hidden">
       <p id="progress"></p>
+      <!-- Chris's coaching, only during the guided first week. -->
+      <section id="coach" class="mentor coach hidden" aria-label="Chris's coaching"></section>
       <article id="rfc-card" class="card"></article>
       <div id="decision-buttons">
         <!-- game.js changes the label for Standard and Emergency changes -->
@@ -167,6 +173,8 @@
   <script src="data/rfcs-switches.js"></script>
   <script src="data/rfcs-servers.js"></script>
   <script src="data/rfcs-software.js"></script>
+  <!-- The guided first week with Chris. -->
+  <script src="data/tutorial.js"></script>
   <!-- Builds the documents attached to each RFC. -->
   <script src="artifacts.js"></script>
   <script src="game.js"></script>

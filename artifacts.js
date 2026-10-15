@@ -261,6 +261,11 @@ function buildRollback(rfc, rng) {
   if (rfc.artifacts && rfc.artifacts.rollback) {
     return docHeader("Rollback Plan", rfc, author, "Submitted with the RFC") + textToHtml(fillArtifact(rfc.artifacts.rollback, rfc));
   }
+  // Hand-picked copy-paste: attach another RFC's rollback plan on purpose.
+  if (rfc.artifacts && rfc.artifacts.rollbackCopiedFrom) {
+    const source = RFCS.find(other => other.id === rfc.artifacts.rollbackCopiedFrom);
+    if (source) return copiedRollback(source, rng);
+  }
   const category = artifactCategory(rfc);
 
   if (rfc.rollback === "solid") {
@@ -283,7 +288,12 @@ function buildRollback(rfc, rng) {
   // Missing: either nothing attached, or a plan copied from another RFC.
   const decoy = rng() < 0.5 ? decoyRfc(rfc, rng) : null;
   if (!decoy) return null;
-  const steps = ARTIFACT_TEMPLATES.rollbackSteps[category].map(s => fillArtifact(s, decoy));
+  return copiedRollback(decoy, rng);
+}
+
+// A perfectly good rollback plan... for a DIFFERENT change.
+function copiedRollback(decoy, rng) {
+  const steps = ARTIFACT_TEMPLATES.rollbackSteps[artifactCategory(decoy)].map(s => fillArtifact(s, decoy));
   return docHeader("Rollback Plan", decoy, authorName(decoy), `Prepared ${3 + Math.floor(rng() * 10)} months ago`) + `
     <h4>Roll back if</h4><ul><li>${fillArtifact(ARTIFACT_TEMPLATES.rollbackTriggers[0], decoy)}</li></ul>
     <h4>Steps</h4><ol>${steps.map(s => `<li>${s}</li>`).join("")}</ol>

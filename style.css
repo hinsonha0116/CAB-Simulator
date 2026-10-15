@@ -511,6 +511,27 @@ dialog#artifact-viewer::backdrop { background: rgba(0, 0, 0, 0.45); }
   .mentor-tips-title { color: #a593c9; }
 }
 
+/* ---------- Guided week: Chris's coaching above the card ---------- */
+.intro-buttons { display: flex; flex-wrap: wrap; gap: 10px; }
+.coach { margin-bottom: 14px; }
+.coach-steps { margin: 6px 0 0; padding-left: 22px; }
+.coach-steps li { margin-bottom: 6px; }
+.coach-steps li[data-open]::after {
+  content: "  (not opened yet)";
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+.coach-steps li.done { color: var(--muted); }
+.coach-steps li.done::after { content: "  \2713 done"; color: var(--good); font-weight: 700; }
+.coach-feedback {
+  margin: 10px 0 0;
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-style: italic;
+}
+.coach-feedback.good { background: var(--accent-soft); border-left: 4px solid var(--good); }
+.coach-feedback.bad { background: var(--bad-soft); border-left: 4px solid var(--bad); }
+
 /* ---------- Week summary and game over ---------- */
 .rating {
   text-align: center;

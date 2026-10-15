@@ -256,6 +256,7 @@ RFCS.push(
   },
   {
     id: "UP-033", title: "Upgrade endpoint agent on every machine at once",
+    after: { id: "UP-032", when: "seen" },  // follow-up: see HOW-TO-ADD-SCENARIOS.md
     requester: "kowalski", type: "Normal", statedRisk: "Low",
     systems: ["Endpoint Security Suite", "NIPR Workstations", "SIPR Workstations"], window: "Wed 0900",
     rollback: "weak", testing: "none", hiddenRisk: "High",
@@ -544,6 +545,7 @@ RFCS.push(
   },
   {
     id: "UP-073", title: "Allow only approved browser extensions",
+    after: { id: "UP-072", when: "seen" },  // follow-up: see HOW-TO-ADD-SCENARIOS.md
     requester: "morgan", type: "Normal", statedRisk: "Medium",
     systems: ["NIPR Workstations"], window: "Tue 1600-1630",
     rollback: "solid", testing: "partial", hiddenRisk: "Medium",
@@ -607,6 +609,7 @@ RFCS.push(
   },
   {
     id: "UP-082", title: "Update VTC endpoint firmware after the visit",
+    after: { id: "UP-081", when: "seen" },  // follow-up: see HOW-TO-ADD-SCENARIOS.md
     requester: "reyes", type: "Normal", statedRisk: "Low",
     systems: ["VTC Bridge"], window: "Tue after the visit, 1700-1800",
     rollback: "solid", testing: "yes", hiddenRisk: "Low",
@@ -635,6 +638,7 @@ RFCS.push(
   },
   {
     id: "UP-086", title: "Uninstall the old VPN client",
+    after: { id: "UP-087", when: "implemented" },  // follow-up: see HOW-TO-ADD-SCENARIOS.md
     requester: "nakamura", type: "Normal", statedRisk: "Low",
     systems: ["NIPR Workstations"], window: "Thu 1600-1700",
     rollback: "solid", testing: "partial", hiddenRisk: "Medium",
@@ -748,10 +752,11 @@ RFCS.push(
   },
   {
     id: "UP-101", title: "Pilot the STIG baseline in the Comms Shack",
+    after: { id: "UP-100", when: "seen" },  // follow-up: see HOW-TO-ADD-SCENARIOS.md
     requester: "nakamura", type: "Normal", statedRisk: "Low",
     systems: ["NIPR Workstations"], window: "Tue 1600-1700",
     rollback: "solid", testing: "yes", hiddenRisk: "Low",
-    justification: "Before Mr. Menon applies it everywhere, I'd like to try it on our own section first. Twelve machines. If something breaks, it's us who suffer. That seems fair."
+    justification: "Mr. Menon wants the STIG baseline on every workstation (UP-100). Before it goes anywhere else, I'd like to try it on our own section first. Twelve machines. If something breaks, it's us who suffer. That seems fair."
   },
   {
     id: "UP-102", title: "Push endpoint definitions to everyone, skipping the pilot (standard)",
@@ -791,10 +796,11 @@ RFCS.push(
   },
   {
     id: "UP-107", title: "Revert endpoint policy that blocks CAC readers",
+    after: { id: "UP-019", when: "implemented" },  // follow-up: see HOW-TO-ADD-SCENARIOS.md
     requester: "morgan", type: "Emergency", statedRisk: "Low",
     systems: ["Endpoint Security Suite", "NIPR Workstations"], window: "Immediately",
     rollback: "solid", testing: "yes", hiddenRisk: "Low",
-    justification: "Yesterday's USB policy also blocked one model of CAC reader. 400 users can't log in. Revert that one setting. Tested on an affected machine."
+    justification: "Last week's USB policy (UP-019) also blocked one model of CAC reader. 400 users can't log in. Revert that one setting. Tested on an affected machine."
   },
   {
     id: "UP-108", title: "Upgrade the network monitoring system's database",

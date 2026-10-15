@@ -34,6 +34,7 @@ const ALLOWED = {
 const REQUIRED_RFC_FIELDS = ["id", "title", "requester", "type", "statedRisk", "systems",
   "window", "rollback", "testing", "justification", "hiddenRisk"];
 const EVENT_EFFECTS = ["auditHonest", "freeze", "promise", "flagUnauthorized"];
+const FOLLOW_UP_CONDITIONS = ["seen", "implemented", "outage"];  // see section 3e-2
 
 const dataProblems = [];   // human-readable problems found
 const brokenRfcs = [];     // RFCs left out of the game
@@ -60,8 +61,9 @@ function checkData() {
   }
 
   const seenIds = [];
-  RFCS.forEach((rfc, index) => {
-    const where = `RFC ${rfc.id || "#" + (index + 1)}`;
+  // The same checks run on the pool AND on the guided week's cards.
+  const checkRfc = (rfc, index, label) => {
+    const where = `${label} ${rfc.id || "#" + (index + 1)}`;
     const before = dataProblems.length;
 
     REQUIRED_RFC_FIELDS.forEach(f => { if (rfc[f] === undefined) dataProblems.push(`${where}: missing ${f}`); });
@@ -88,7 +90,37 @@ function checkData() {
       });
     }
 
+    // Follow-ups must point at a real RFC and use a known condition.
+    if (rfc.after) {
+      if (!RFCS.some(other => other.id === rfc.after.id)) {
+        dataProblems.push(`${where}: after.id "${rfc.after.id}" isn't an RFC id`);
+      }
+      if (!FOLLOW_UP_CONDITIONS.includes(rfc.after.when)) {
+        dataProblems.push(`${where}: after.when is "${rfc.after.when}", but must be one of: ${FOLLOW_UP_CONDITIONS.join(", ")}`);
+      }
+    }
+
+    if (rfc.artifacts && rfc.artifacts.rollbackCopiedFrom &&
+        !RFCS.some(other => other.id === rfc.artifacts.rollbackCopiedFrom)) {
+      dataProblems.push(`${where}: artifacts.rollbackCopiedFrom "${rfc.artifacts.rollbackCopiedFrom}" isn't an RFC id`);
+    }
+
     if (dataProblems.length > before) brokenRfcs.push(rfc);
+  };
+  RFCS.forEach((rfc, index) => checkRfc(rfc, index, "RFC"));
+
+  // The guided first week (data/tutorial.js).
+  const STEP_DOCS = ["implementation", "rollback", "testing", "diagram", "catalogue"];
+  TUTORIAL.cards.forEach((card, index) => {
+    checkRfc(card.rfc, index, "Guided week RFC");
+    const where = `Guided week card ${index + 1}`;
+    if (!["ready", "sendBack"].includes(card.recommend)) dataProblems.push(`${where}: recommend must be "ready" or "sendBack"`);
+    if (!card.right || !card.wrong) dataProblems.push(`${where}: needs both "right" and "wrong" text`);
+    (card.steps || []).forEach(step => {
+      if (step.open && !STEP_DOCS.includes(step.open)) {
+        dataProblems.push(`${where}: step open "${step.open}" must be one of: ${STEP_DOCS.join(", ")}`);
+      }
+    });
   });
 
   const catalogueIds = [];
@@ -148,6 +180,9 @@ function renderDataProblems() {
 checkData();
 // The RFCs the game will actually use (everything without problems).
 const PLAYABLE_RFCS = RFCS.filter(rfc => !brokenRfcs.includes(rfc));
+// Follow-ups (RFCs with "after") are never dealt at random; they're
+// scheduled when the change they follow on from has happened.
+const RANDOM_POOL = PLAYABLE_RFCS.filter(rfc => !rfc.after);
 
 // ---------------------------------------------------------------------
 // 1. GAME STATE - everything the game needs to remember while playing.
@@ -185,7 +220,8 @@ function resetGame() {
       sanity: STARTING_METER_VALUE
     },
     week: 1,
-    deck: shuffle([...PLAYABLE_RFCS]), // RFCs waiting to be put in a queue
+    deck: shuffle([...RANDOM_POOL]), // RFCs waiting to be put in a queue
+    followUpsScheduled: new Set(),   // ids of follow-ups already lined up
     // RFCs coming back in a later week (sent back, deferred, or
     // returning as emergencies): { rfc, dueWeek }
     returning: [],
@@ -203,7 +239,8 @@ function resetGame() {
     lastAuditWeek: 0,     // the auditors check everything after this week
     auditFlags: [],       // extra findings waiting for the next audit
     currentEvent: null,   // { event, suspect } while an event is on screen
-    pendingNote: ""       // message to show on the next week's intro
+    pendingNote: "",      // message to show on the next week's intro
+    tutorial: false       // true during the guided first week
   };
 }
 
@@ -259,7 +296,7 @@ function drawQueue() {
 
   while (queue.length < size) {
     if (state.deck.length === 0) {
-      state.deck = shuffle(PLAYABLE_RFCS.filter(rfc => !isBlocked(rfc)));
+      state.deck = shuffle(RANDOM_POOL.filter(rfc => !isBlocked(rfc)));
     }
     const rfc = state.deck.pop();
     if (!isBlocked(rfc)) queue.push(rfc);
@@ -337,6 +374,30 @@ function cabVote(h) {
   const rfc = h.rfc;
   const person = CHARACTERS[rfc.requester];
   const fx = {};
+
+  // The guided week is predictable so the lessons land: ready changes
+  // are approved, unready ones rejected, emergencies go through.
+  if (state.tutorial) {
+    if (rfc.type === "Standard") {
+      addEffects(fx, CAB_FX.standard);
+      return { outcome: "standard", label: "Logged as Standard (no CAB)", style: "good", fx,
+        comment: pickRandom(CAB_COMMENTS.standardLogged), implement: true };
+    }
+    if (rfc.type === "Emergency") {
+      addEffects(fx, CAB_FX.ecab);
+      return { outcome: "approved", label: "Approved by ECAB", style: "good", fx,
+        comment: `${pickRandom(CAB_COMMENTS.ecab)} ${person.reactions.approve}`, implement: true };
+    }
+    addEffects(fx, CREDIBILITY_FX[h.assessment]);
+    if (h.assessment === "notReady") {
+      addEffects(fx, CAB_FX.rejected);
+      return { outcome: "rejected", label: "Rejected by CAB", style: "warn", fx,
+        comment: `${pickRandom(CAB_COMMENTS.poorlyPrepared)} ${person.reactions.reject}`, implement: false };
+    }
+    addEffects(fx, CAB_FX.approved);
+    return { outcome: "approved", label: "Approved by CAB", style: "good", fx,
+      comment: `${pickRandom(CAB_COMMENTS.wellPrepared)} ${person.reactions.approve}`, implement: true };
+  }
 
   // Sent forward during a freeze: pulled from the agenda and held.
   if (state.freeze && rfc.type !== "Emergency") {
@@ -431,7 +492,9 @@ function makeReport(rfc, outcome, label, style, text, fx, extra = {}) {
 
 // Roll the dice for one implemented RFC and build its incident report.
 function resolveImplementation(rfc) {
-  const isOutage = Math.random() < chanceOfOutage(rfc);
+  // Nothing breaks in the guided week (except by forwarding junk, which
+  // the board rejects anyway).
+  const isOutage = !state.tutorial && Math.random() < chanceOfOutage(rfc);
 
   if (isOutage) {
     const severity = OUTAGE_SEVERITY[rfc.rollback];
@@ -597,6 +660,49 @@ function resolveDeferral(rfc) {
       pickRandom(RESUBMISSION_NOTES.withdrawn), WITHDRAWN_FX);
   }
   return null;
+}
+
+// 3e-2. FOLLOW-UPS. Some RFCs only make sense after another change,
+//       e.g. "same firmware the XO wanted, but after the visit". In the
+//       data they have  after: { id: "UP-081", when: "seen" }  and they
+//       arrive the WEEK AFTER that change, if the condition was met:
+//         seen         - the change came up for review (any decision)
+//         implemented  - it actually went in
+//         outage       - it went in and caused an incident
+//       (FOLLOW_UP_CONDITIONS, the list of allowed "when" values, is at the
+//       top of the file because the data checker needs it first.)
+
+// Every RFC with "after", grouped by the id it follows on from.
+const FOLLOW_UPS = {};
+RFCS.forEach(rfc => {
+  if (!rfc.after) return;
+  (FOLLOW_UPS[rfc.after.id] = FOLLOW_UPS[rfc.after.id] || []).push(rfc);
+});
+
+function followUpConditionMet(h, when) {
+  if (when === "seen") return true;
+  if (when === "implemented") return Boolean(h.implementation);
+  if (when === "outage") {
+    return Boolean((h.implementation && h.implementation.outcome === "outage") || h.collisions);
+  }
+  return false;
+}
+
+// Called after each CAB with that week's decisions.
+function scheduleFollowUps(entries) {
+  entries.forEach(h => {
+    const prerequisite = baseId(h.rfc);
+    (FOLLOW_UPS[prerequisite] || []).forEach(followUp => {
+      if (state.followUpsScheduled.has(followUp.id)) return;   // only ever once
+      if (brokenRfcs.includes(followUp)) return;
+      if (!followUpConditionMet(h, followUp.after.when)) return;
+      state.followUpsScheduled.add(followUp.id);
+      state.returning.push({
+        rfc: { ...followUp, returnNote: `Follow-up to ${prerequisite}: ${h.rfc.title}`, returnStyle: "info" },
+        dueWeek: state.week + 1
+      });
+    });
+  });
 }
 
 // 3f. ON HOLD during a freeze: it waits, unchanged, and returns in the
@@ -773,7 +879,8 @@ function chrisDebrief(entries) {
   });
 
   return {
-    opener: pickRandom(MENTOR.openers),
+    // After the guided week, Chris sums up what you've learned instead.
+    opener: state.tutorial ? TUTORIAL.wrapUp : pickRandom(MENTOR.openers),
     summary,
     incidents: incidentNumbers,
     tips,
@@ -916,11 +1023,19 @@ function renderMeters(fx = {}) {
 
 // The screen at the start of each week.
 function renderWeekIntro(extraNote = "") {
+  const isWeekOne = state.week === 1;
   document.getElementById("intro-title").textContent = `Week ${state.week} · Change review`;
-  document.getElementById("intro-text").textContent =
-    `Your queue has new requests for change. Review each one and decide whether it's ready ` +
-    `for ${CAB_DAY}'s CAB.`;
+  document.getElementById("intro-text").textContent = isWeekOne
+    ? TUTORIAL.intro
+    : `Your queue has new requests for change. Review each one and decide whether it's ready ` +
+      `for ${CAB_DAY}'s CAB.`;
   document.getElementById("intro-note").textContent = extraNote;
+
+  // Week 1 offers the guided week, with a way to skip it.
+  document.getElementById("btn-start-guided").classList.toggle("hidden", !isWeekOne);
+  const startButton = document.getElementById("btn-start");
+  startButton.textContent = isWeekOne ? "Skip it: go straight to a real week" : "Open the change queue";
+  startButton.className = isWeekOne ? "ghost" : "primary";
 
   // Remind the player about any rules from random events.
   const alerts = [];
@@ -971,6 +1086,54 @@ function readyButtonLabel(rfc) {
   return "Ready for CAB";
 }
 
+// ---------------------------------------------------------------------
+// GUIDED WEEK: Chris's coaching panel above the card (data/tutorial.js).
+// ---------------------------------------------------------------------
+function tutorialCardFor(rfc) {
+  return state.tutorial ? TUTORIAL.cards.find(card => card.rfc.id === rfc.id) : null;
+}
+
+function renderCoach(rfc) {
+  const coach = document.getElementById("coach");
+  const guide = tutorialCardFor(rfc);
+  if (!guide) {
+    coach.innerHTML = "";
+    coach.classList.add("hidden");
+    return;
+  }
+  const steps = guide.steps.map(step =>
+    `<li ${step.open ? `data-open="${step.open}"` : ""}>${step.text}</li>`).join("");
+  coach.innerHTML = `
+    <div class="mentor-head">
+      <span class="avatar mentor-avatar" aria-hidden="true">${MENTOR.name[0]}</span>
+      <div>
+        <p class="mentor-name">${MENTOR.name} <span>&middot; guided week, RFC ${state.currentIndex + 1} of ${state.queue.length}</span></p>
+      </div>
+    </div>
+    <ol class="coach-steps">${steps}</ol>
+    <p class="coach-feedback hidden"></p>
+  `;
+  coach.classList.remove("hidden");
+  updateCoachTicks();
+}
+
+// Tick off each step whose document has been opened.
+function updateCoachTicks() {
+  document.querySelectorAll("#coach .coach-steps li[data-open]").forEach(li => {
+    li.classList.toggle("done", openedArtifacts.has(li.dataset.open));
+  });
+}
+
+// After a decision, Chris tells you whether it was the right call.
+function showCoachFeedback(rfc, decision) {
+  const guide = tutorialCardFor(rfc);
+  if (!guide) return;
+  const right = decision === guide.recommend;
+  const feedback = document.querySelector("#coach .coach-feedback");
+  feedback.textContent = `"${right ? guide.right : guide.wrong}"`;
+  feedback.className = `coach-feedback ${right ? "good" : "bad"}`;
+}
+
 // Build the RFC card's HTML from one RFC object.
 function renderCard(rfc) {
   const person = CHARACTERS[rfc.requester];
@@ -991,6 +1154,9 @@ function renderCard(rfc) {
   if (state.promise) {
     status += `<p class="status-banner">&#128222; You promised to send everything to CAB. Sending RFCs back will cost you.</p>`;
   }
+
+  // In the guided week, Chris coaches you through the card.
+  renderCoach(rfc);
 
   const card = document.getElementById("rfc-card");
   card.className = `card type-${rfc.type}`; // coloured top edge per change type
@@ -1074,6 +1240,7 @@ function openArtifact(index) {
   const dialog = document.getElementById("artifact-viewer");
   dialog.showModal();
   dialog.scrollTop = 0;
+  updateCoachTicks();
   // Tick the attachment on the card.
   const button = document.querySelector(`#rfc-card [data-artifact="${index}"]`);
   if (button && !button.querySelector(".seen")) {
@@ -1302,8 +1469,12 @@ function newGame() {
   showScreen("screen-intro");
 }
 
-function startReview() {
-  state.queue = drawQueue();
+// guided = true starts the guided first week with Chris.
+function startReview(guided = false) {
+  state.tutorial = guided === true;
+  state.queue = state.tutorial
+    ? TUTORIAL.cards.map(card => ({ ...card.rfc }))   // copies, so the originals stay untouched
+    : drawQueue();
   state.currentIndex = 0;
   openedArtifacts = new Set();
   renderMeters();
@@ -1334,6 +1505,7 @@ function makeDecision(decision) {
   else reaction = `Added to ${CAB_DAY}'s CAB agenda.`;
   document.getElementById("reaction").textContent = reaction;
   setDecisionButtonsEnabled(false);
+  showCoachFeedback(rfc, decision);
 
   // Thump a rubber stamp onto the card.
   const stamp = document.createElement("div");
@@ -1400,6 +1572,9 @@ function holdCab() {
     for (const m in report.fx) totalFx[m] += report.fx[m];
   });
 
+  // Line up any follow-up RFCs for next week.
+  scheduleFollowUps(decisionsThisWeek());
+
   // Freezes and promises only last for one week.
   state.freeze = false;
   state.promise = false;
@@ -1422,6 +1597,7 @@ function afterResults() {
 
 function startNextWeek() {
   state.week++;
+  state.tutorial = false;   // the guided week is over
   // The weekend helps a bit; the ops tempo grinds everything down a bit.
   const pressure = weeklyPressure(state.week);
   const fx = { sanity: WEEKEND_SANITY_BONUS };
@@ -1501,7 +1677,8 @@ function afterEvent() {
 }
 
 // Connect buttons to the functions above.
-document.getElementById("btn-start").addEventListener("click", startReview);
+document.getElementById("btn-start").addEventListener("click", () => startReview(false));
+document.getElementById("btn-start-guided").addEventListener("click", () => startReview(true));
 document.getElementById("btn-next").addEventListener("click", nextCard);
 document.getElementById("btn-continue").addEventListener("click", afterResults);
 document.getElementById("btn-next-week").addEventListener("click", startNextWeek);
@@ -1548,6 +1725,11 @@ function renderCatalogue(highlightId) {
 
 // Open the catalogue. If an entry id is given, highlight it and scroll to it.
 function openCatalogue(highlightId) {
+  // Counts as "read the catalogue" for Chris's guided-week checklist.
+  if (!document.getElementById("screen-meeting").classList.contains("hidden")) {
+    openedArtifacts.add("catalogue");
+    updateCoachTicks();
+  }
   renderCatalogue(highlightId);
   const dialog = document.getElementById("catalogue");
   dialog.showModal();
@@ -1578,7 +1760,8 @@ document.getElementById("rfc-card").addEventListener("click", event => {
 
 // Keyboard shortcuts: R = ready, N = not ready, H = hold (freeze only),
 // C = catalogue, Enter = the screen's main "continue" button.
-const CONTINUE_BUTTONS = ["btn-start", "btn-next", "btn-continue", "btn-event-continue",
+// (The guided-week button comes first, so Enter picks it on week 1.)
+const CONTINUE_BUTTONS = ["btn-start-guided", "btn-start", "btn-next", "btn-continue", "btn-event-continue",
   "btn-next-week", "btn-restart"];
 
 document.addEventListener("keydown", event => {

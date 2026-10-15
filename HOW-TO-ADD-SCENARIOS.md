@@ -89,6 +89,29 @@ The fun comes from the **visible fields hinting at the hidden risk, but not alwa
   nobody knew (e.g. the "empty" building where the chaplain moved in). The player can't catch these; that's life.
 - **Pressure from above:** the Colonel's requests are rarely tested and often risky, but sending them back hurts Leadership, and the CAB tends to bend for him.
 
+### Follow-ups: RFCs that refer to another change
+
+If an RFC only makes sense *after* another one (e.g. "same firmware the XO
+wanted, but after the visit"), add `after`:
+
+```js
+    id: "UP-082", title: "Update VTC endpoint firmware after the visit",
+    after: { id: "UP-081", when: "seen" },
+```
+
+A follow-up is **never dealt at random**. It arrives **the week after** the
+change it follows on from, and only if the condition was met:
+
+| `when` | The follow-up arrives the next week if the earlier change... |
+|---|---|
+| `"seen"` | came up for review at all (whatever you decided) |
+| `"implemented"` | actually went in |
+| `"outage"` | went in and caused an incident |
+
+If the condition never happens, the follow-up never appears in that game.
+It's shown with a "Follow-up to UP-081" banner so the player sees the link.
+Refer to the earlier change as "last week", not "yesterday".
+
 ### Attachments (artifacts)
 
 Every RFC automatically gets four documents the player can open: an
@@ -203,6 +226,18 @@ When the **change freeze** event happens, that week's CAB is frozen:
 You can add new freeze reasons by adding text variants to the `changeFreeze` event in `data.js`.
 
 ---
+
+## The guided first week
+
+`data/tutorial.js` holds the guided week: four RFCs (one Standard, two
+Normal, one Emergency), each with Chris's steps, the right call, and what
+he says if you get it right or wrong. Steps with `open: "rollback"` (or
+`"implementation"`, `"testing"`, `"diagram"`, `"catalogue"`) tick off when
+the player opens that document. You can add, remove or rewrite cards
+there; the data checker validates them like any other RFC.
+
+To show a rollback plan deliberately copied from another change, use
+`artifacts: { rollbackCopiedFrom: "FW-061" }`.
 
 ## Other things you can edit in data.js
 

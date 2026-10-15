@@ -63,6 +63,7 @@ RFCS.push(
   },
   {
     id: "SW-008", title: "Enable port security on barracks switches",
+    after: { id: "RT-056", when: "seen" },  // follow-up: see HOW-TO-ADD-SCENARIOS.md
     requester: "morgan", type: "Normal", statedRisk: "Medium",
     systems: ["Barracks Switches"], window: "Tue 1000-1200",
     rollback: "solid", testing: "partial", hiddenRisk: "Medium",
@@ -261,6 +262,7 @@ RFCS.push(
   },
   {
     id: "SW-034", title: "Set storm-control thresholds on access ports",
+    after: { id: "SW-010", when: "seen" },  // follow-up: see HOW-TO-ADD-SCENARIOS.md
     requester: "jackson", type: "Normal", statedRisk: "Low",
     systems: ["HQ Building Switches", "Barracks Switches", "Motor Pool Switches"], window: "Tue 2000-2100",
     rollback: "solid", testing: "partial", hiddenRisk: "Low",
@@ -443,6 +445,7 @@ RFCS.push(
   },
   {
     id: "SW-059", title: "Replace motor pool switches",
+    after: { id: "SW-033", when: "implemented" },  // follow-up: see HOW-TO-ADD-SCENARIOS.md
     requester: "albright", type: "Normal", statedRisk: "Medium",
     systems: ["Motor Pool Switches"], window: "Sat 0700-1100",
     rollback: "solid", testing: "yes", hiddenRisk: "Low",
@@ -730,6 +733,7 @@ RFCS.push(
   },
   {
     id: "SW-097", title: "Replace barracks switches, phase 2 (Mrs. Okafor's plan)",
+    after: { id: "SW-006", when: "seen" },  // follow-up: see HOW-TO-ADD-SCENARIOS.md
     requester: "mason", type: "Normal", statedRisk: "Medium",
     systems: ["Barracks Switches"], window: "Sat 0800-1400",
     rollback: "solid", testing: "partial", hiddenRisk: "Medium",

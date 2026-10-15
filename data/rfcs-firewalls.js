@@ -192,10 +192,11 @@ RFCS.push(
   },
   {
     id: "FW-024", title: "Restore the accidentally deleted print server rule",
+    after: { id: "FW-008", when: "implemented" },  // follow-up: see HOW-TO-ADD-SCENARIOS.md
     requester: "ortiz", type: "Emergency", statedRisk: "Low",
     systems: ["Data Center Firewall", "Print Servers"], window: "Right now",
     rollback: "solid", testing: "yes", hiddenRisk: "Low",
-    justification: "Yesterday's cleanup removed the print rule. Nobody on the installation can print. We have the exact rule from last week's backup."
+    justification: "Last week's rule cleanup (FW-008) removed the print rule. Nobody on the installation can print. We have the exact rule from last week's backup."
   },
   {
     id: "FW-025", title: "Enable automatic threat-signature updates on perimeter firewalls",
@@ -414,10 +415,11 @@ RFCS.push(
   },
   {
     id: "FW-054", title: "Re-enable recruiter VPN profile disabled by mistake",
+    after: { id: "FW-053", when: "implemented" },  // follow-up: see HOW-TO-ADD-SCENARIOS.md
     requester: "ortiz", type: "Emergency", statedRisk: "Low",
     systems: ["NIPR Perimeter Firewall"], window: "Right now",
     rollback: "solid", testing: "yes", hiddenRisk: "Low",
-    justification: "Yesterday's VPN cleanup disabled the recruiters' profile. 30 recruiters in the field can't work. It's one checkbox to turn it back on."
+    justification: "Last week's VPN cleanup (FW-053) disabled the recruiters' profile. 30 recruiters in the field can't work. It's one checkbox to turn it back on."
   },
   {
     id: "FW-055", title: "Allow new SIEM collector to receive firewall logs (template rule)",
@@ -629,6 +631,7 @@ RFCS.push(
   },
   {
     id: "FW-083", title: "Require two-person approval for firewall rule changes",
+    after: { id: "FW-021", when: "outage" },  // follow-up: see HOW-TO-ADD-SCENARIOS.md
     requester: "albright", type: "Normal", statedRisk: "Low",
     systems: ["Firewall Management Server"], window: "Thu 0800-0830",
     rollback: "solid", testing: "partial", hiddenRisk: "Low",
@@ -835,6 +838,7 @@ RFCS.push(
   },
   {
     id: "FW-109", title: "Automate nightly firewall configuration backups",
+    after: { id: "FW-088", when: "seen" },  // follow-up: see HOW-TO-ADD-SCENARIOS.md
     requester: "patchbot", type: "Normal", statedRisk: "Low",
     systems: ["Firewall Management Server", "Backup Servers"], window: "Nightly 0100 (automatic)",
     rollback: "solid", testing: "yes", hiddenRisk: "Low",

@@ -15,6 +15,10 @@ job is to decide which requests are **ready** to go in front of the board.
 Keep all four meters (Stability, Leadership Happiness, Audit Readiness,
 Your Sanity) above zero.
 
+**New to it?** Week 1 offers a **guided week**: four requests, one of each
+kind, with Chris sitting beside you explaining what to open and what to look
+for. (You can skip it.)
+
 Each week:
 
 1. **Review your queue** of 5-10 RFCs. Each comes with **attachments** you
@@ -74,7 +78,8 @@ live in the `data/` folder (one file per category); everything else is in
 | `index.html` | Page structure (the screens) |
 | `style.css` | Look and feel, including dark mode |
 | `data.js` | Characters, events, report text, ratings, Standard Change Catalogue |
-| `data/rfcs-*.js` | **The 500 change requests**, by category. Add your own here! |
+| `data/rfcs-*.js` | **The 534 change requests**, by category. Add your own here! |
+| `data/tutorial.js` | The guided first week with Chris |
 | `artifacts.js` | Builds the documents attached to each RFC (rollback plans, test results, diagrams) |
 | `game.js` | Game rules and logic |
 | `HOW-TO-ADD-SCENARIOS.md` | Guide to writing new content |
