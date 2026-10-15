@@ -514,6 +514,24 @@ dialog#artifact-viewer::backdrop { background: rgba(0, 0, 0, 0.45); }
 /* ---------- Guided week: Chris's coaching above the card ---------- */
 .intro-buttons { display: flex; flex-wrap: wrap; gap: 10px; }
 .coach { margin-bottom: 14px; }
+.coach-lesson {
+  margin: 8px 0 12px;
+  padding: 10px 14px;
+  border-radius: 8px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+}
+.coach-lesson p { margin: 6px 0; }
+.coach-lesson-heading { font-weight: 800; font-size: 1.05rem; color: #6b5a8a; }
+@media (prefers-color-scheme: dark) { .coach-lesson-heading { color: #a593c9; } }
+.coach-steps-title {
+  margin: 0;
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+}
 .coach-steps { margin: 6px 0 0; padding-left: 22px; }
 .coach-steps li { margin-bottom: 6px; }
 .coach-steps li[data-open]::after {

@@ -116,6 +116,9 @@ function checkData() {
     const where = `Guided week card ${index + 1}`;
     if (!["ready", "sendBack"].includes(card.recommend)) dataProblems.push(`${where}: recommend must be "ready" or "sendBack"`);
     if (!card.right || !card.wrong) dataProblems.push(`${where}: needs both "right" and "wrong" text`);
+    if (card.lesson && (!card.lesson.heading || !Array.isArray(card.lesson.paragraphs))) {
+      dataProblems.push(`${where}: lesson needs a heading and a list of paragraphs`);
+    }
     (card.steps || []).forEach(step => {
       if (step.open && !STEP_DOCS.includes(step.open)) {
         dataProblems.push(`${where}: step open "${step.open}" must be one of: ${STEP_DOCS.join(", ")}`);
@@ -1103,6 +1106,12 @@ function renderCoach(rfc) {
   }
   const steps = guide.steps.map(step =>
     `<li ${step.open ? `data-open="${step.open}"` : ""}>${step.text}</li>`).join("");
+  // Chris's explanation of the change type, before the steps.
+  const lesson = guide.lesson ? `
+    <div class="coach-lesson">
+      <p class="coach-lesson-heading">${guide.lesson.heading}</p>
+      ${guide.lesson.paragraphs.map(p => `<p>${p}</p>`).join("")}
+    </div>` : "";
   coach.innerHTML = `
     <div class="mentor-head">
       <span class="avatar mentor-avatar" aria-hidden="true">${MENTOR.name[0]}</span>
@@ -1110,6 +1119,8 @@ function renderCoach(rfc) {
         <p class="mentor-name">${MENTOR.name} <span>&middot; guided week, RFC ${state.currentIndex + 1} of ${state.queue.length}</span></p>
       </div>
     </div>
+    ${lesson}
+    <p class="coach-steps-title">Let's look at this one together</p>
     <ol class="coach-steps">${steps}</ol>
     <p class="coach-feedback hidden"></p>
   `;

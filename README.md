@@ -15,9 +15,10 @@ job is to decide which requests are **ready** to go in front of the board.
 Keep all four meters (Stability, Leadership Happiness, Audit Readiness,
 Your Sanity) above zero.
 
-**New to it?** Week 1 offers a **guided week**: four requests, one of each
-kind, with Chris sitting beside you explaining what to open and what to look
-for. (You can skip it.)
+**New to it?** Week 1 offers a **guided week**: three requests, one of each
+change type (Standard, Normal, Emergency). Chris teaches you what each type
+is, as if it's your first day, then walks you through what to open and what
+to look for. (You can skip it.)
 
 Each week:
 

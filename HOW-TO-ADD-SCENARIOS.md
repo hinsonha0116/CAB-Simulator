@@ -229,9 +229,10 @@ You can add new freeze reasons by adding text variants to the `changeFreeze` eve
 
 ## The guided first week
 
-`data/tutorial.js` holds the guided week: four RFCs (one Standard, two
-Normal, one Emergency), each with Chris's steps, the right call, and what
-he says if you get it right or wrong. Steps with `open: "rollback"` (or
+`data/tutorial.js` holds the guided week: three RFCs, one of each change
+type (Standard, Normal, Emergency). Each has a `lesson` (Chris explaining
+the change type to a complete beginner), Chris's steps, the right call, and
+what he says if you get it right or wrong. Steps with `open: "rollback"` (or
 `"implementation"`, `"testing"`, `"diagram"`, `"catalogue"`) tick off when
 the player opens that document. You can add, remove or rewrite cards
 there; the data checker validates them like any other RFC.
