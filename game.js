@@ -35,7 +35,14 @@ function resetGame() {
     // Every decision ever made, each stamped with its week and day:
     // { week, day, rfc, decision, report }
     history: [],
-    nextIncidentNumber: 1042
+    nextIncidentNumber: 1042,
+    // Random event state:
+    freeze: false,        // change freeze at the next meeting?
+    promise: false,       // promised leadership to be "flexible"?
+    lastAuditMeeting: 0,  // the auditors check everything after this meeting
+    auditFlags: [],       // extra findings waiting for the next audit
+    currentEvent: null,   // { event, suspect } while an event is on screen
+    pendingNote: ""       // message to show on the next meeting intro
   };
 }
 
@@ -353,6 +360,72 @@ function getPerformanceRating(entries) {
   return PERFORMANCE_RATINGS.mediocre;
 }
 
+// 3g. RANDOM EVENTS between meetings. The events themselves (text and
+//     choices) live in data.js; the special rules live here.
+const EVENT_CHANCE = 0.5;  // chance of an event before each meeting
+const FREEZE_VIOLATION_FX = { leadership: -10, audit: -4 }; // outweighs the +6 for approving
+const BROKEN_PROMISE_FX = { leadership: -4, sanity: -2 };
+const AUDIT_PENALTY_PER_FINDING = 5;
+const AUDIT_MAX_PENALTY = 25;
+const CLEAN_AUDIT_FX = { leadership: 2, audit: 10, sanity: 3 };
+
+// What would auditors find, looking at everything since their last visit?
+function auditFindings() {
+  const findings = [];
+  state.history
+    .filter(h => h.meeting > state.lastAuditMeeting && h.decision === "approve")
+    .forEach(h => {
+      if (h.rfc.rollback === "missing") findings.push(`${h.rfc.id} was approved with no rollback plan`);
+      if (h.rfc.testing === "none") findings.push(`${h.rfc.id} was approved with no testing evidence`);
+      if (h.freezeViolation) findings.push(`${h.rfc.id} was approved during a change freeze`);
+    });
+  return findings.concat(state.auditFlags);
+}
+
+// Replace {name} in event text with the event's suspect.
+function fillEventText(text) {
+  const suspect = state.currentEvent.suspect;
+  if (!suspect) return text;
+  return text.replaceAll("{name}", CHARACTERS[suspect].name.split(" ")[0]);
+}
+
+// Add one set of meter changes onto another (both are { meter: number }).
+function addEffects(target, more) {
+  for (const m in more) target[m] = (target[m] || 0) + more[m];
+}
+
+// The player picked a choice: work out its effects, switch on any
+// lasting rule, and return what to show on screen.
+function applyEventChoice(choice) {
+  const fx = { stability: 0, leadership: 0, audit: 0, sanity: 0 };
+  addEffects(fx, choice.fx || {});
+  let text = choice.result || "";
+  let findings = [];
+
+  if (choice.effect === "auditHonest") {
+    findings = auditFindings();
+    if (findings.length === 0) {
+      addEffects(fx, CLEAN_AUDIT_FX);
+      text = choice.cleanResult;
+    } else {
+      fx.audit -= Math.min(AUDIT_MAX_PENALTY, findings.length * AUDIT_PENALTY_PER_FINDING);
+      fx.sanity -= 2;
+      text = choice.findingsResult;
+    }
+    // The slate is wiped clean after an honest audit.
+    state.lastAuditMeeting = state.meetingNumber;
+    state.auditFlags = [];
+  }
+  if (choice.effect === "freeze") state.freeze = true;
+  if (choice.effect === "promise") state.promise = true;
+  if (choice.effect === "flagUnauthorized") {
+    state.auditFlags.push(fillEventText("An unauthorized change by {name} was approved after the fact"));
+  }
+
+  applyEffects(fx);
+  return { fx, text: fillEventText(text), findings };
+}
+
 // Small helpers
 function pickRandom(list) {
   return list[Math.floor(Math.random() * list.length)];
@@ -410,6 +483,12 @@ function renderMeetingIntro(extraNote = "") {
     `Week ${state.week} · ${currentDay()} CAB, 10:00`;
   document.getElementById("intro-text").textContent = pickRandom(MEETING_INTROS);
   document.getElementById("intro-note").textContent = extraNote;
+
+  // Remind the player about any rules from random events.
+  const alerts = [];
+  if (state.freeze) alerts.push("❄ Change freeze in effect: approve only Emergency changes.");
+  if (state.promise) alerts.push("You promised leadership you'd be 'flexible'. Rejecting or sending back will cost extra.");
+  document.getElementById("intro-alert").textContent = alerts.join(" ");
   // The "how to play" text only needs showing at the very start.
   const isFirstMeeting = state.week === 1 && state.meetingIndex === 0;
   document.getElementById("intro-rules").classList.toggle("hidden", !isFirstMeeting);
@@ -436,7 +515,17 @@ function renderCard(rfc) {
     ? `<p class="return-note ${rfc.returnStyle}">&#8617; ${rfc.returnNote}</p>`
     : "";
 
+  // Reminders from random events (freeze, promise).
+  let status = "";
+  if (state.freeze) {
+    status += `<p class="status-banner">&#10052; CHANGE FREEZE: approving anything except an Emergency change breaks the freeze.</p>`;
+  }
+  if (state.promise) {
+    status += `<p class="status-banner">&#128222; You promised to be 'flexible'. Rejecting or sending back will cost you.</p>`;
+  }
+
   document.getElementById("rfc-card").innerHTML = `
+    ${status}
     ${banner}
     <span class="rfc-id">${rfc.id}</span>
     <h2>${rfc.title}</h2>
@@ -642,14 +731,29 @@ function startMeeting() {
 function makeDecision(decision) {
   const rfc = state.agenda[state.currentIndex];
   const fx = getDecisionEffects(rfc, decision);
+  const reactions = [CHARACTERS[rfc.requester].reactions[decision]];
+
+  // Change freeze: approving anything but an Emergency breaks it.
+  const breaksFreeze = state.freeze && decision === "approve" && rfc.type !== "Emergency";
+  if (breaksFreeze) {
+    addEffects(fx, FREEZE_VIOLATION_FX);
+    reactions.push("You approved a non-Emergency change during a freeze. Leadership noticed.");
+  }
+  // Promised to be "flexible", then said no.
+  if (state.promise && decision !== "approve") {
+    addEffects(fx, BROKEN_PROMISE_FX);
+    reactions.push("So much for being 'flexible'. Your phone is already ringing.");
+  }
 
   applyEffects(fx);
-  state.history.push({ week: state.week, day: currentDay(), rfc, decision, report: null });
+  state.history.push({
+    week: state.week, day: currentDay(), meeting: state.meetingNumber,
+    rfc, decision, report: null, freezeViolation: breaksFreeze
+  });
   renderMeters(fx);
 
   // Show the requester's reaction and stop more clicks on this card.
-  document.getElementById("reaction").textContent =
-    CHARACTERS[rfc.requester].reactions[decision];
+  document.getElementById("reaction").textContent = reactions.join(" ");
   setDecisionButtonsEnabled(false);
 
   if (isGameOver()) {
@@ -699,6 +803,10 @@ function endMeeting() {
     for (const m in report.fx) totalFx[m] += report.fx[m];
   });
 
+  // Freezes and promises only last for one meeting.
+  state.freeze = false;
+  state.promise = false;
+
   renderConsequences(reports, totalFx);
   showScreen("screen-consequences");
 }
@@ -711,8 +819,7 @@ function afterConsequences() {
     showScreen("screen-end");
   } else if (state.meetingIndex < MEETING_DAYS.length - 1) {
     state.meetingIndex++;
-    renderMeetingIntro();
-    showScreen("screen-intro");
+    goToNextMeeting();
   } else {
     renderWeekSummary();
     showScreen("screen-week");
@@ -724,8 +831,77 @@ function startNextWeek() {
   state.meetingIndex = 0;
   applyEffects({ sanity: WEEKEND_SANITY_BONUS });
   renderMeters({ sanity: WEEKEND_SANITY_BONUS });
-  renderMeetingIntro(`The weekend restored a little sanity (+${WEEKEND_SANITY_BONUS}).`);
+  goToNextMeeting(`The weekend restored a little sanity (+${WEEKEND_SANITY_BONUS}).`);
+}
+
+// Before each meeting there's a chance of a random event first.
+function goToNextMeeting(note = "") {
+  state.pendingNote = note;
+  if (Math.random() < EVENT_CHANCE) {
+    startEvent();
+  } else {
+    showMeetingIntro();
+  }
+}
+
+function showMeetingIntro() {
+  renderMeetingIntro(state.pendingNote);
   showScreen("screen-intro");
+}
+
+function startEvent() {
+  const event = pickRandom(EVENTS);
+  const suspect = event.suspects ? pickRandom(event.suspects) : null;
+  state.currentEvent = { event, suspect };
+
+  document.getElementById("event-title").textContent = event.title;
+  document.getElementById("event-text").textContent = fillEventText(pickRandom(event.text));
+
+  // One button per choice.
+  const choicesEl = document.getElementById("event-choices");
+  choicesEl.innerHTML = "";
+  event.choices.forEach(choice => {
+    const button = document.createElement("button");
+    button.className = "primary";
+    button.textContent = choice.label;
+    button.addEventListener("click", () => chooseEventOption(choice));
+    choicesEl.appendChild(button);
+  });
+
+  choicesEl.classList.remove("hidden");
+  document.getElementById("event-result").classList.add("hidden");
+  document.getElementById("btn-event-continue").classList.add("hidden");
+  showScreen("screen-event");
+}
+
+function chooseEventOption(choice) {
+  const outcome = applyEventChoice(choice);
+  renderMeters(outcome.fx);
+
+  const findingsList = outcome.findings.length
+    ? `<ul>${outcome.findings.map(f => `<li>${f}</li>`).join("")}</ul>`
+    : "";
+  const resultEl = document.getElementById("event-result");
+  resultEl.innerHTML = `
+    <p>${outcome.text}</p>
+    ${findingsList}
+    <p class="report-fx">${describeEffects(outcome.fx)}</p>
+  `;
+  resultEl.classList.remove("hidden");
+  document.getElementById("event-choices").classList.add("hidden");
+
+  const continueButton = document.getElementById("btn-event-continue");
+  continueButton.textContent = isGameOver() ? "Oh no" : `On to ${currentDay()}'s CAB`;
+  continueButton.classList.remove("hidden");
+}
+
+function afterEvent() {
+  if (isGameOver()) {
+    renderGameOver();
+    showScreen("screen-end");
+  } else {
+    showMeetingIntro();
+  }
 }
 
 // Connect buttons to the functions above.
@@ -733,6 +909,7 @@ document.getElementById("btn-start").addEventListener("click", startMeeting);
 document.getElementById("btn-next").addEventListener("click", nextCard);
 document.getElementById("btn-continue").addEventListener("click", afterConsequences);
 document.getElementById("btn-next-week").addEventListener("click", startNextWeek);
+document.getElementById("btn-event-continue").addEventListener("click", afterEvent);
 document.getElementById("btn-restart").addEventListener("click", newGame);
 document.querySelectorAll("#decision-buttons button").forEach(button => {
   button.addEventListener("click", () => makeDecision(button.dataset.decision));

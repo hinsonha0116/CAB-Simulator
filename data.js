@@ -13,6 +13,7 @@
    - RESUBMISSION_NOTES:  what a sent-back RFC says when it returns
    - MEETING_INTROS:      scene-setting lines shown before each meeting
    - PERFORMANCE_RATINGS: end-of-week titles and jokes
+   - EVENTS:              random events between meetings (audits, freezes...)
 
    HOW TO ADD A NEW CHANGE REQUEST (RFC)
    1. Copy one of the { ... } blocks inside RFCS below.
@@ -617,6 +618,107 @@ const PERFORMANCE_RATINGS = {
     blurb: "Some wins, some fires. Your annual review will use the word 'journey'."
   }
 };
+
+/* ---------------------------------------------------------------------
+   RANDOM EVENTS between meetings.
+   Each event has:
+     title, text: [variants, one picked at random]
+     suspects:    (optional) characters who might be involved; {name}
+                  in the text becomes one of them, picked at random
+     choices:     buttons the player can pick from. Each choice has:
+        label:   button text
+        fx:      meter changes, e.g. { audit: -6, sanity: 2 }
+        result:  text shown after choosing
+        effect:  (optional) a special rule handled in game.js:
+                 "auditHonest"      - count findings since the last audit
+                 "freeze"           - change freeze at the next meeting
+                 "promise"          - rejecting at the next meeting costs extra
+                 "flagUnauthorized" - becomes a finding at the next audit
+   --------------------------------------------------------------------- */
+const EVENTS = [
+  {
+    id: "surpriseAudit",
+    title: "Surprise audit!",
+    text: [
+      "Two auditors have arrived with a laptop and no sense of humour. They'd like to see every change you've approved since their last visit.",
+      "Internal Audit has 'just a few questions' about your recent change records. They've brought a printed list. It is double-sided."
+    ],
+    choices: [
+      {
+        label: "Show them everything",
+        effect: "auditHonest",
+        // Used by game.js depending on what the auditors find:
+        cleanResult: "The auditors find nothing. They seem disappointed. One of them says 'huh' out loud, which is the highest praise an auditor can give.",
+        findingsResult: "The auditors found problems. They have written each one down. Slowly. In pen."
+      },
+      {
+        label: "Say the records are 'being migrated'",
+        fx: { audit: -8, sanity: -3 },
+        result: "The auditors write 'records being migrated' in their report and underline it twice. They will be back, and the findings will still be there."
+      }
+    ]
+  },
+  {
+    id: "changeFreeze",
+    title: "Change freeze declared",
+    text: [
+      "Quarter-end is coming. The CFO has declared a change freeze: nothing but Emergency changes until the books close.",
+      "A major product launch is this week. Leadership has declared a change freeze. 'Nothing touches production,' they said, while touching production."
+    ],
+    choices: [
+      {
+        label: "Acknowledge the freeze",
+        effect: "freeze",
+        fx: {},
+        result: "At the next CAB, approve only Emergency changes. Approving anything else breaks the freeze, and leadership WILL notice."
+      }
+    ]
+  },
+  {
+    id: "pressureCall",
+    title: "A 'quick call' from leadership",
+    text: [
+      "Brad has called your mobile. Then your desk phone. Then your manager. The message: 'Stop blocking the business. Can we count on you to be flexible at the next CAB?'",
+      "The CIO messages you: 'Quick one. The exec team feels CAB is slowing things down. Can you be a bit more... flexible this week?'"
+    ],
+    choices: [
+      {
+        label: "Promise to be 'flexible'",
+        effect: "promise",
+        fx: { leadership: 8, sanity: -2 },
+        result: "Leadership is delighted. At the next CAB, every rejection or send-back will be a broken promise."
+      },
+      {
+        label: "Explain why the process exists",
+        fx: { leadership: -6, audit: 4, sanity: -3 },
+        result: "You walk them through risk assessment, change windows and rollback plans. They nod, then forward it to someone else to 'review'."
+      }
+    ]
+  },
+  {
+    id: "unauthorizedChange",
+    title: "Unauthorized change discovered",
+    suspects: ["dave", "kyle", "brad", "linda"],
+    text: [
+      "Monitoring spotted a configuration change on the Web Platform at 03:12. There's no RFC. The login belongs to {name}.",
+      "A server in the data centre has a new sticky note: 'Upgraded - don't touch'. Nobody raised a change. The handwriting looks like {name}'s.",
+      "{name} 'just quickly' changed a firewall rule in production on Friday afternoon. There's no RFC. There is a chat message saying 'should be fine'."
+    ],
+    choices: [
+      {
+        label: "Approve it retroactively",
+        effect: "flagUnauthorized",
+        fx: { leadership: 3, sanity: 2, audit: -6, stability: -2 },
+        result: "It's in the change log now, dated after the fact. {name} has learned that skipping CAB works. The next audit will find this."
+      },
+      {
+        label: "Investigate and roll it back",
+        fx: { stability: -4, audit: 6, leadership: -3, sanity: -4 },
+        result: "You roll it back and run a proper review. A short outage and a lot of grumbling, but the process holds. {name} has been 'reminded' of the change policy."
+      }
+    ]
+  }
+];
 
 // Used when an RFC has no outageReport / successReport of its own.
 const GENERIC_REPORTS = {
