@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CAB Simulator</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header>
+    <h1>CAB Simulator</h1>
+    <p class="tagline">You are the Chair of the Change Advisory Board. Good luck.</p>
+  </header>
+
+  <!-- The four meters. game.js fills in the numbers and bar widths. -->
+  <section id="meters">
+    <div class="meter" data-meter="stability">
+      <span class="meter-label">Stability</span>
+      <div class="meter-bar"><div class="meter-fill"></div></div>
+      <span class="meter-value">50</span>
+    </div>
+    <div class="meter" data-meter="leadership">
+      <span class="meter-label">Leadership Happiness</span>
+      <div class="meter-bar"><div class="meter-fill"></div></div>
+      <span class="meter-value">50</span>
+    </div>
+    <div class="meter" data-meter="audit">
+      <span class="meter-label">Audit Readiness</span>
+      <div class="meter-bar"><div class="meter-fill"></div></div>
+      <span class="meter-value">50</span>
+    </div>
+    <div class="meter" data-meter="sanity">
+      <span class="meter-label">Your Sanity</span>
+      <div class="meter-bar"><div class="meter-fill"></div></div>
+      <span class="meter-value">50</span>
+    </div>
+  </section>
+
+  <main>
+    <!-- SCREEN 1: start -->
+    <section id="screen-start" class="screen">
+      <h2>Tuesday CAB, 10:00</h2>
+      <p>Five change requests are on the agenda. The coffee is cold. Someone has joined the call
+        from their car.</p>
+      <p>For each request choose <strong>Approve</strong>, <strong>Reject</strong>, or
+        <strong>Send Back</strong> for more info. If any meter hits 0, you're done.</p>
+      <button id="btn-start" class="primary">Call the meeting to order</button>
+    </section>
+
+    <!-- SCREEN 2: the meeting (one RFC card at a time) -->
+    <section id="screen-meeting" class="screen hidden">
+      <p id="progress"></p>
+      <article id="rfc-card" class="card"></article>
+      <div id="decision-buttons">
+        <button data-decision="approve" class="approve">Approve</button>
+        <button data-decision="reject" class="reject">Reject</button>
+        <button data-decision="sendBack" class="sendback">Send Back for More Info</button>
+      </div>
+      <p id="reaction"></p>
+      <button id="btn-next" class="primary hidden">Next RFC</button>
+    </section>
+
+    <!-- SCREEN 3: meeting over (or game over) -->
+    <section id="screen-end" class="screen hidden">
+      <h2 id="end-title"></h2>
+      <div id="end-summary"></div>
+      <button id="btn-restart" class="primary">Play again</button>
+    </section>
+  </main>
+
+  <!-- Order matters: data first, then the logic that uses it. -->
+  <script src="data.js"></script>
+  <script src="game.js"></script>
+</body>
+</html>

@@ -1,0 +1,142 @@
+/* ---------- Colours in one place so they're easy to change ---------- */
+:root {
+  --bg: #f3f1ec;
+  --panel: #ffffff;
+  --text: #1f2328;
+  --muted: #646b73;
+  --border: #d8d4cc;
+  --good: #2f8f4e;
+  --warn: #c98a12;
+  --bad: #c2402e;
+  --accent: #2f5fa7;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  padding: 16px;
+  background: var(--bg);
+  color: var(--text);
+  font-family: "Segoe UI", system-ui, sans-serif;
+  line-height: 1.45;
+}
+
+header, #meters, main {
+  max-width: 760px;
+  margin: 0 auto;
+}
+
+h1 { margin: 0; font-size: 1.8rem; }
+.tagline { margin: 4px 0 16px; color: var(--muted); }
+
+/* ---------- Meters ---------- */
+#meters {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 10px;
+  margin-bottom: 16px;
+}
+.meter {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 10px;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 4px 8px;
+}
+.meter-label { font-size: 0.85rem; color: var(--muted); }
+.meter-value { font-weight: 700; text-align: right; }
+.meter-bar {
+  grid-column: 1 / -1;
+  height: 8px;
+  background: #e8e5de;
+  border-radius: 4px;
+  overflow: hidden;
+}
+.meter-fill {
+  height: 100%;
+  width: 50%;
+  background: var(--good);
+  transition: width 0.4s, background 0.4s;
+}
+.meter.warn .meter-fill { background: var(--warn); }
+.meter.danger .meter-fill { background: var(--bad); }
+
+/* Little "+5" / "-8" numbers that flash next to a meter after a decision */
+.meter-delta { font-size: 0.8rem; font-weight: 700; }
+.meter-delta.up { color: var(--good); }
+.meter-delta.down { color: var(--bad); }
+
+/* ---------- Screens and cards ---------- */
+.screen {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 20px;
+}
+.hidden { display: none !important; }
+
+#progress { margin: 0 0 8px; color: var(--muted); font-size: 0.9rem; }
+
+.card h2 { margin: 4px 0 4px; font-size: 1.3rem; }
+.card .rfc-id { font-family: Consolas, monospace; color: var(--muted); }
+.card .requester { margin: 0 0 12px; color: var(--muted); }
+
+.fields {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 6px 14px;
+  margin: 0 0 12px;
+}
+.fields dt { font-weight: 600; }
+.fields dd { margin: 0; }
+
+.justification {
+  border-left: 4px solid var(--border);
+  margin: 0;
+  padding: 6px 12px;
+  font-style: italic;
+  background: #faf9f6;
+}
+
+/* Coloured tags for risk, rollback, testing, change type */
+.tag {
+  display: inline-block;
+  padding: 1px 8px;
+  border-radius: 10px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #fff;
+}
+.tag.good { background: var(--good); }
+.tag.warn { background: var(--warn); }
+.tag.bad { background: var(--bad); }
+.tag.info { background: var(--accent); }
+
+/* ---------- Buttons ---------- */
+button {
+  font: inherit;
+  padding: 10px 16px;
+  border-radius: 6px;
+  border: 1px solid transparent;
+  cursor: pointer;
+  color: #fff;
+}
+button:disabled { opacity: 0.4; cursor: not-allowed; }
+button.primary { background: var(--accent); }
+button.approve { background: var(--good); }
+button.reject { background: var(--bad); }
+button.sendback { background: var(--warn); }
+
+#decision-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 16px;
+}
+#reaction { min-height: 1.5em; font-style: italic; }
+
+/* ---------- End screen ---------- */
+#end-summary ul { padding-left: 20px; }
