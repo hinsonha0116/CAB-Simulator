@@ -5,6 +5,106 @@
    ===================================================================== */
 
 // ---------------------------------------------------------------------
+// 0. DATA CHECKER - catches typos in data.js (e.g. testing: "Yes" with a
+//    capital Y) and lists them in a red box on the page. Broken RFCs are
+//    left out of the game so everything else keeps working.
+// ---------------------------------------------------------------------
+const ALLOWED = {
+  type: ["Standard", "Normal", "Emergency"],
+  statedRisk: ["Low", "Medium", "High"],
+  hiddenRisk: ["Low", "Medium", "High"],
+  rollback: ["solid", "weak", "missing"],
+  testing: ["yes", "partial", "none"],
+  clout: ["Low", "Medium", "High"],
+  followThrough: ["Low", "Medium", "High"]
+};
+const REQUIRED_RFC_FIELDS = ["id", "title", "requester", "type", "statedRisk", "systems",
+  "window", "rollback", "testing", "justification", "hiddenRisk"];
+const EVENT_EFFECTS = ["auditHonest", "freeze", "promise", "flagUnauthorized"];
+
+const dataProblems = [];   // human-readable problems found
+const brokenRfcs = [];     // RFCs left out of the game
+
+// Check one field's value against its allowed list.
+function checkAllowed(where, field, value) {
+  if (!ALLOWED[field].includes(value)) {
+    dataProblems.push(`${where}: ${field} is "${value}", but must be one of: ${ALLOWED[field].join(", ")}`);
+    return false;
+  }
+  return true;
+}
+
+function checkData() {
+  for (const key in CHARACTERS) {
+    const c = CHARACTERS[key];
+    const where = `Character "${key}"`;
+    ["name", "role", "personality"].forEach(f => { if (!c[f]) dataProblems.push(`${where}: missing ${f}`); });
+    checkAllowed(where, "clout", c.clout);
+    checkAllowed(where, "followThrough", c.followThrough);
+    ["approve", "reject", "sendBack"].forEach(d => {
+      if (!c.reactions || !c.reactions[d]) dataProblems.push(`${where}: missing reactions.${d}`);
+    });
+  }
+
+  const seenIds = [];
+  RFCS.forEach((rfc, index) => {
+    const where = `RFC ${rfc.id || "#" + (index + 1)}`;
+    const before = dataProblems.length;
+
+    REQUIRED_RFC_FIELDS.forEach(f => { if (rfc[f] === undefined) dataProblems.push(`${where}: missing ${f}`); });
+    ["type", "statedRisk", "hiddenRisk", "rollback", "testing"].forEach(f => {
+      if (rfc[f] !== undefined) checkAllowed(where, f, rfc[f]);
+    });
+    if (rfc.requester && !CHARACTERS[rfc.requester]) {
+      dataProblems.push(`${where}: requester "${rfc.requester}" isn't in CHARACTERS`);
+    }
+    if (rfc.systems !== undefined && (!Array.isArray(rfc.systems) || rfc.systems.length === 0)) {
+      dataProblems.push(`${where}: systems must be a list like ["Web Platform"]`);
+    }
+    if (seenIds.includes(rfc.id)) dataProblems.push(`${where}: another RFC already uses this id`);
+    seenIds.push(rfc.id);
+
+    const em = rfc.returnsAsEmergency;
+    if (em) {
+      if (!em.reason) dataProblems.push(`${where}: returnsAsEmergency needs a reason`);
+      ["statedRisk", "hiddenRisk", "rollback", "testing"].forEach(f => {
+        if (em[f] !== undefined) checkAllowed(`${where} (returnsAsEmergency)`, f, em[f]);
+      });
+    }
+
+    if (dataProblems.length > before) brokenRfcs.push(rfc);
+  });
+
+  EVENTS.forEach(event => {
+    const where = `Event "${event.id}"`;
+    if (!event.title || !event.text || !event.choices || event.choices.length === 0) {
+      dataProblems.push(`${where}: needs a title, text and at least one choice`);
+    }
+    (event.suspects || []).forEach(s => {
+      if (!CHARACTERS[s]) dataProblems.push(`${where}: suspect "${s}" isn't in CHARACTERS`);
+    });
+    (event.choices || []).forEach(choice => {
+      if (choice.effect && !EVENT_EFFECTS.includes(choice.effect)) {
+        dataProblems.push(`${where}: unknown effect "${choice.effect}"`);
+      }
+    });
+  });
+}
+
+function renderDataProblems() {
+  const box = document.getElementById("data-problems");
+  if (dataProblems.length === 0) return;
+  box.innerHTML = `<strong>Problems found in data.js</strong> (fix these and refresh the page):
+    <ul>${dataProblems.map(p => `<li>${p}</li>`).join("")}</ul>`;
+  box.classList.remove("hidden");
+  console.error("CAB Simulator data problems:\n" + dataProblems.join("\n"));
+}
+
+checkData();
+// The RFCs the game will actually use (everything without problems).
+const PLAYABLE_RFCS = RFCS.filter(rfc => !brokenRfcs.includes(rfc));
+
+// ---------------------------------------------------------------------
 // 1. GAME STATE - everything the game needs to remember while playing.
 // ---------------------------------------------------------------------
 const STARTING_METER_VALUE = 50;
@@ -26,7 +126,7 @@ function resetGame() {
     week: 1,
     meetingIndex: 0,     // 0 = Tuesday, 1 = Thursday
     meetingNumber: 0,    // counts every meeting so far (1, 2, 3...)
-    deck: shuffle([...RFCS]), // RFCs waiting to be put on an agenda
+    deck: shuffle([...PLAYABLE_RFCS]), // RFCs waiting to be put on an agenda
     // RFCs coming back later (sent back, or returning as emergencies):
     // { rfc, dueMeeting }
     returning: [],
@@ -97,7 +197,7 @@ function drawAgenda() {
 
   while (agenda.length < size) {
     if (state.deck.length === 0) {
-      state.deck = shuffle(RFCS.filter(rfc => !isBlocked(rfc)));
+      state.deck = shuffle(PLAYABLE_RFCS.filter(rfc => !isBlocked(rfc)));
     }
     const rfc = state.deck.pop();
     if (!isBlocked(rfc)) agenda.push(rfc);
@@ -504,6 +604,19 @@ const TESTING_COLOURS = { yes: "good", partial: "warn", none: "bad" };
 const TYPE_COLOURS = { Standard: "good", Normal: "info", Emergency: "bad" };
 
 // Build the RFC card's HTML from one RFC object in data.js.
+// A coloured circle with the character's initials, e.g. "PR".
+// Each character gets a fixed colour based on their position in data.js.
+const AVATAR_COLOURS = ["#2f5fa7", "#2f8f4e", "#a2452f", "#7a4fb0", "#b97f0f",
+  "#1f8a8a", "#b0457a", "#4a6b2f", "#5a5fc0", "#8a5a2f", "#3d7cb0"];
+
+function renderAvatar(characterKey) {
+  const initials = CHARACTERS[characterKey].name
+    .split(" ").slice(0, 2).map(word => word[0]).join("");
+  const position = Object.keys(CHARACTERS).indexOf(characterKey);
+  const colour = AVATAR_COLOURS[position % AVATAR_COLOURS.length];
+  return `<span class="avatar" style="background:${colour}" aria-hidden="true">${initials}</span>`;
+}
+
 function renderCard(rfc) {
   const person = CHARACTERS[rfc.requester];
 
@@ -524,13 +637,18 @@ function renderCard(rfc) {
     status += `<p class="status-banner">&#128222; You promised to be 'flexible'. Rejecting or sending back will cost you.</p>`;
   }
 
-  document.getElementById("rfc-card").innerHTML = `
+  const card = document.getElementById("rfc-card");
+  card.className = `card type-${rfc.type}`; // coloured top edge per change type
+  card.innerHTML = `
     ${status}
     ${banner}
     <span class="rfc-id">${rfc.id}</span>
     <h2>${rfc.title}</h2>
-    <p class="requester">Requested by <strong>${person.name}</strong>, ${person.role}
-      <br><small>${person.personality}</small></p>
+    <div class="requester">
+      ${renderAvatar(rfc.requester)}
+      <p class="requester-text">Requested by <strong>${person.name}</strong>, ${person.role}
+        <small>${person.personality}</small></p>
+    </div>
     <dl class="fields">
       <dt>Change type</dt>     <dd>${tag(rfc.type, TYPE_COLOURS[rfc.type])}</dd>
       <dt>Stated risk</dt>     <dd>${tag(rfc.statedRisk, RISK_COLOURS[rfc.statedRisk])}</dd>
@@ -756,6 +874,12 @@ function makeDecision(decision) {
   document.getElementById("reaction").textContent = reactions.join(" ");
   setDecisionButtonsEnabled(false);
 
+  // Thump a rubber stamp onto the card.
+  const stamp = document.createElement("div");
+  stamp.className = `stamp ${decision}`;
+  stamp.textContent = DECISION_LABELS[decision];
+  document.getElementById("rfc-card").appendChild(stamp);
+
   if (isGameOver()) {
     renderGameOver();
     // Short pause so the player sees the meter drop before game over.
@@ -915,5 +1039,32 @@ document.querySelectorAll("#decision-buttons button").forEach(button => {
   button.addEventListener("click", () => makeDecision(button.dataset.decision));
 });
 
+// Keyboard shortcuts: A / R / S to decide, Enter to press the screen's
+// main "continue" button.
+const CONTINUE_BUTTONS = ["btn-start", "btn-next", "btn-continue", "btn-event-continue",
+  "btn-next-week", "btn-restart"];
+
+document.addEventListener("keydown", event => {
+  if (event.ctrlKey || event.metaKey || event.altKey) return;
+
+  const decision = { a: "approve", r: "reject", s: "sendBack" }[event.key.toLowerCase()];
+  const decisionButton = decision && document.querySelector(`[data-decision=${decision}]`);
+  const onMeeting = !document.getElementById("screen-meeting").classList.contains("hidden");
+  if (decisionButton && onMeeting && !decisionButton.disabled) {
+    decisionButton.click();
+    return;
+  }
+
+  // Enter: if a button already has keyboard focus, the browser clicks it
+  // for us, so only step in when nothing is focused.
+  if (event.key === "Enter" && event.target.tagName !== "BUTTON") {
+    const button = CONTINUE_BUTTONS
+      .map(id => document.getElementById(id))
+      .find(b => b.offsetParent !== null); // offsetParent is null when hidden
+    if (button) button.click();
+  }
+});
+
 // Set up the first meeting when the page loads.
+renderDataProblems();
 newGame();

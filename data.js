@@ -5,6 +5,9 @@
    requests). You can edit or add entries here without touching the
    game logic in game.js.
 
+   >>> Full guide with examples: HOW-TO-ADD-SCENARIOS.md <<<
+   After editing, refresh the game. Typos show up in a red box.
+
    WHAT'S IN HERE (in order)
    - CHARACTERS:          the recurring requesters and their reactions
    - RFCS:                the pool of change requests (3-5 are dealt per meeting)
@@ -143,6 +146,54 @@ const CHARACTERS = {
       approve: "Hannah briefs her team so they know what's coming. Nobody else ever does this.",
       reject: "Hannah sighs and adds a new canned response for 'yes, we know'.",
       sendBack: "Hannah resubmits with a user comms plan attached. Again."
+    }
+  },
+  tess: {
+    name: "Tess Nakamura",
+    role: "Junior Developer",
+    clout: "Low",
+    followThrough: "High",
+    personality: "Three weeks into the job. Answers every question with complete, terrifying honesty.",
+    reactions: {
+      approve: "Tess whispers 'oh no, it's real now' and unmutes by accident.",
+      reject: "Tess says 'that's totally fair' and then quietly turns her camera off.",
+      sendBack: "Tess writes down every word you said, including 'um'."
+    }
+  },
+  ravi: {
+    name: "Ravi Menon",
+    role: "Enterprise Architect",
+    clout: "Medium",
+    followThrough: "Medium",
+    personality: "Every change needs a diagram. Every diagram needs a diagram.",
+    reactions: {
+      approve: "Ravi shares his screen to show the 'approved' state in a new diagram.",
+      reject: "Ravi says the rejection is 'not aligned with the target architecture'.",
+      sendBack: "Ravi promises a revised deck. It will be longer."
+    }
+  },
+  deploybot: {
+    name: "DeployBot 3000",
+    role: "Automated Release Pipeline",
+    clout: "Low",
+    followThrough: "High",
+    personality: "Raises its own changes. Does not understand sarcasm. Or weekends.",
+    reactions: {
+      approve: "BEEP. CHANGE APPROVED. DEPLOYING. HAVE A PRODUCTIVE DAY, HUMAN.",
+      reject: "BEEP. REJECTION LOGGED. RETRYING IN 5 MINUTES.",
+      sendBack: "BEEP. 'MORE INFO' IS NOT A RECOGNISED COMMAND. ATTACHING 40,000 LOG LINES."
+    }
+  },
+  gwen: {
+    name: "Gwen Albright",
+    role: "Head of Finance Systems",
+    clout: "High",
+    followThrough: "Medium",
+    personality: "Controls the budget. Remembers every outage since 2009, by date.",
+    reactions: {
+      approve: "Gwen nods once. You feel like you passed an exam you didn't know about.",
+      reject: "Gwen writes something down. You'll find out what at budget season.",
+      sendBack: "Gwen asks for the questions in writing, 'so there's a record'."
     }
   }
 };
@@ -573,6 +624,216 @@ const RFCS = [
     rejectedReport:
       "Brad presented a slide titled 'Revenue Lost To Process' at the leadership offsite. " +
       "Your face was on it."
+  },
+  {
+    id: "CHG0018",
+    title: "Fix typo in the order confirmation email",
+    requester: "tess",
+    type: "Normal",
+    statedRisk: "Low",
+    systems: ["Checkout API", "Email"],
+    window: "Tue 19:00 - 19:15",
+    rollback: "solid",
+    testing: "yes",
+    justification:
+      "It currently says 'Thank you for your ordeal'. I tested the fix. I also tested undoing it. " +
+      "Sorry, I wasn't sure if this needed CAB. My manager said everything needs CAB.",
+    hiddenRisk: "Low",
+    outageReport:
+      "The new template had a missing bracket. 3,000 customers got an email that just says " +
+      "'{{customer_name}}'. Tess rolled back in 4 minutes and apologised to the whole company.",
+    successReport:
+      "Customers now thank us for their order, not their ordeal. Tess has printed the email and stuck it on her monitor."
+  },
+  {
+    id: "CHG0019",
+    title: "Upgrade a library with a known security hole",
+    requester: "tess",
+    type: "Normal",
+    statedRisk: "Medium",
+    systems: ["Web Platform"],
+    window: "Thu 20:00 - 21:00",
+    rollback: "weak",
+    testing: "partial",
+    justification:
+      "Honestly I'm not 100% sure what else uses this library. I found 14 things. There might be " +
+      "more. I wanted to be upfront about that. Morgan says the hole is 'quite bad'.",
+    hiddenRisk: "Medium",
+    outageReport:
+      "Thing number 15 was the login page. Nobody could log in for 2 hours. Tess had, in " +
+      "fairness, warned everyone in writing.",
+    successReport:
+      "Library upgraded. All 14 things still work, and so does mystery thing number 15."
+  },
+  {
+    id: "CHG0020",
+    title: "Introduce a service mesh across all platforms (phase 1)",
+    requester: "ravi",
+    type: "Normal",
+    statedRisk: "Medium",
+    systems: ["Web Platform", "Checkout API", "Customer Database"],
+    window: "Sat 00:00 - 06:00 (phase 1 of 6 weekends)",
+    rollback: "weak",
+    testing: "partial",
+    justification:
+      "Attached: a 47-slide deck, 9 diagrams and a glossary. In short: all services will talk " +
+      "to each other through a mesh. Phase 1 is 'just the plumbing'. Rollback is covered on slide 41.",
+    hiddenRisk: "High",
+    outageReport:
+      "The plumbing worked perfectly, except that no service could find any other service. " +
+      "Ravi has drawn a diagram of the outage. It is very good.",
+    successReport:
+      "Phase 1 went live. Nothing visible changed, which Ravi says is 'the point'. Five phases to go."
+  },
+  {
+    id: "CHG0021",
+    title: "Retire the legacy FTP server",
+    requester: "ravi",
+    type: "Normal",
+    statedRisk: "Low",
+    systems: ["File Transfer"],
+    window: "Thu 18:00 - 18:30",
+    rollback: "solid",
+    testing: "yes",
+    justification:
+      "The FTP server is from 2006 and has no owner. We checked the logs for a month. The plan " +
+      "is to power it off, not delete it, for 30 days. Power back on if anyone screams.",
+    hiddenRisk: "Medium",
+    outageReport:
+      "Someone screamed. The bank collects the payroll file from the FTP server once a month, " +
+      "which is why it wasn't in a month of logs. Powered back on. Payroll is 6 hours late.",
+    successReport:
+      "Server off. Nobody screamed. Ravi has updated 9 diagrams to remove it."
+  },
+  {
+    id: "CHG0022",
+    title: "Automated release: Web Platform v4.12.3",
+    requester: "deploybot",
+    type: "Standard",
+    statedRisk: "Low",
+    systems: ["Web Platform"],
+    window: "Tue 14:00 (auto-scheduled)",
+    rollback: "solid",
+    testing: "yes",
+    justification:
+      "BEEP. ALL 2,318 AUTOMATED TESTS PASSED. AUTOMATIC ROLLBACK ENABLED. THIS IS A " +
+      "PRE-APPROVED STANDARD CHANGE. WHY AM I IN THIS MEETING. BEEP.",
+    hiddenRisk: "Low",
+    successReport:
+      "BEEP. RELEASE COMPLETE. ZERO ERRORS. DEPLOYBOT HAS RETURNED TO ITS NATURAL STATE: WAITING."
+  },
+  {
+    id: "CHG0023",
+    title: "Automated release: Checkout API v2.0.0 (major version)",
+    requester: "deploybot",
+    type: "Standard",
+    statedRisk: "Low",
+    systems: ["Checkout API"],
+    window: "Thu 14:00 (auto-scheduled)",
+    rollback: "weak",
+    testing: "partial",
+    justification:
+      "BEEP. 1,904 TESTS PASSED. 412 TESTS MARKED 'SKIP'. CLASSIFIED AS STANDARD CHANGE BY MY " +
+      "CONFIGURATION. CONFIGURATION LAST UPDATED BY: DAVE. INCLUDES IRREVERSIBLE DATABASE MIGRATION. BEEP.",
+    hiddenRisk: "High",
+    outageReport:
+      "The 412 skipped tests were the payment tests. Checkout took orders but no money for " +
+      "3 hours. The database change can't be undone. DeployBot has 'no comment'.",
+    successReport:
+      "Somehow the 412 skipped tests didn't matter. Someone has quietly reclassified major releases as Normal changes."
+  },
+  {
+    id: "CHG0024",
+    title: "Apply new-year tax tables to Payroll",
+    requester: "gwen",
+    type: "Normal",
+    statedRisk: "Medium",
+    systems: ["Payroll"],
+    window: "Fri 18:00 - 20:00",
+    rollback: "solid",
+    testing: "yes",
+    justification:
+      "Legally required before the next pay run. Parallel-run against last month's payroll: every " +
+      "payslip matched to the cent. I have checked it twice. I have had it checked by someone who dislikes me.",
+    hiddenRisk: "Low",
+    outageReport:
+      "One allowance code was mapped wrong. Gwen spotted it in the post-implementation check " +
+      "and reverted before anyone was paid. She has added it to her list of dates.",
+    successReport:
+      "Tax tables applied. Everyone was paid correctly. Nobody will ever know how close this was to being exciting.",
+    returnsAsEmergency: {
+      reason:
+        "Payroll ran with last year's tax tables. Everyone's pay is slightly wrong, which is " +
+        "worse than very wrong, because it's harder to explain.",
+      title: "EMERGENCY: Fix tax tables and correct this month's pay",
+      statedRisk: "High",
+      window: "Tonight",
+      testing: "partial",
+      hiddenRisk: "Medium",
+      justification:
+        "As I said on the record, this was legally required. Now we must also fix 2,000 payslips. " +
+        "The parallel run is half-done. I'd like the minutes to show the date of my original request."
+    }
+  },
+  {
+    id: "CHG0025",
+    title: "Move Finance onto the new ERP over the long weekend",
+    requester: "gwen",
+    type: "Normal",
+    statedRisk: "High",
+    systems: ["ERP", "Payroll", "Orders Database"],
+    window: "Long weekend, Fri 18:00 - Mon 23:00",
+    rollback: "weak",
+    testing: "partial",
+    justification:
+      "Two years of planning. Two dress rehearsals, the second one 'mostly' successful. The old ERP " +
+      "contract ends this month. Rollback is possible until Saturday noon, after which we commit.",
+    hiddenRisk: "High",
+    outageReport:
+      "Data migration ran 14 hours over. After the Saturday noon point of no return, they found " +
+      "orders from 2019 to 2021 had been imported as 'pending'. Finance is working Monday by hand.",
+    successReport:
+      "Against all odds, the new ERP went live on time. Gwen allowed herself one celebratory biscuit.",
+    rejectedReport:
+      "Gwen reminded the CFO, at length, that the old ERP costs $40,000 a month past the contract " +
+      "date. The CFO now knows your name."
+  },
+  {
+    id: "CHG0026",
+    title: "Upgrade the service desk phone system",
+    requester: "hannah",
+    type: "Normal",
+    statedRisk: "Medium",
+    systems: ["Phone System"],
+    window: "Sat 08:00 - 12:00",
+    rollback: "solid",
+    testing: "partial",
+    justification:
+      "The phone system is end-of-life and drops 1 in 20 calls. Tested with 5 agents, not 50. " +
+      "The old system stays plugged in until Monday as a fallback. Users have been told.",
+    hiddenRisk: "Medium",
+    outageReport:
+      "The new system played hold music to everyone, including the agents. Hannah switched back to " +
+      "the old system by 10:15. The hold music is still in her head.",
+    successReport:
+      "New phones are live. Dropped calls: zero. The service desk can finally hear the angry customers clearly."
+  },
+  {
+    id: "CHG0027",
+    title: "Monthly patching of the database servers",
+    requester: "priya",
+    type: "Standard",
+    statedRisk: "Low",
+    systems: ["Orders Database", "Customer Database"],
+    window: "Wed 23:00 - 01:00",
+    rollback: "solid",
+    testing: "yes",
+    justification:
+      "Standard change from the catalogue, done every month for four years. Patched in staging last " +
+      "week. Rolling one server at a time so there is no downtime.",
+    hiddenRisk: "Low",
+    successReport:
+      "Patched, one server at a time, with no downtime. Priya logged off at 00:48. Nobody noticed, as usual."
   }
 ];
 
@@ -698,7 +959,7 @@ const EVENTS = [
   {
     id: "unauthorizedChange",
     title: "Unauthorized change discovered",
-    suspects: ["dave", "kyle", "brad", "linda"],
+    suspects: ["dave", "kyle", "brad", "linda", "ravi", "deploybot"],
     text: [
       "Monitoring spotted a configuration change on the Web Platform at 03:12. There's no RFC. The login belongs to {name}.",
       "A server in the data centre has a new sticky note: 'Upgraded - don't touch'. Nobody raised a change. The handwriting looks like {name}'s.",

@@ -1,14 +1,48 @@
-/* ---------- Colours in one place so they're easy to change ---------- */
+/* =====================================================================
+   CAB SIMULATOR - STYLES
+   All colours are defined once at the top as "variables" (the lines
+   starting with --). Dark mode just swaps those values.
+   ===================================================================== */
+
 :root {
   --bg: #f3f1ec;
   --panel: #ffffff;
+  --panel-soft: #faf9f6;   /* slightly tinted boxes inside panels */
+  --track: #e8e5de;        /* empty part of meter bars */
   --text: #1f2328;
   --muted: #646b73;
   --border: #d8d4cc;
   --good: #2f8f4e;
-  --warn: #c98a12;
+  --warn: #b97f0f;
   --bad: #c2402e;
   --accent: #2f5fa7;
+  --bad-soft: #f8e1dc;
+  --warn-soft: #fbf1dc;
+  --accent-soft: #dfe9f7;
+  --info-soft: #ecebe6;
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.06), 0 4px 14px rgba(0, 0, 0, 0.05);
+}
+
+/* Dark mode: same names, darker values. Follows the computer's setting. */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #16181c;
+    --panel: #1f2227;
+    --panel-soft: #262a30;
+    --track: #33373e;
+    --text: #e6e6e3;
+    --muted: #9aa0a8;
+    --border: #3a3f47;
+    --good: #4caf6e;
+    --warn: #d9a43a;
+    --bad: #e0634f;
+    --accent: #6b98de;
+    --bad-soft: #3d2420;
+    --warn-soft: #3a2f17;
+    --accent-soft: #1f2d42;
+    --info-soft: #2b2e33;
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
+  }
 }
 
 * { box-sizing: border-box; }
@@ -18,7 +52,7 @@ body {
   padding: 16px;
   background: var(--bg);
   color: var(--text);
-  font-family: "Segoe UI", system-ui, sans-serif;
+  font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
   line-height: 1.45;
 }
 
@@ -27,31 +61,57 @@ header, #meters, main {
   margin: 0 auto;
 }
 
-h1 { margin: 0; font-size: 1.8rem; }
-.tagline { margin: 4px 0 16px; color: var(--muted); }
-
-/* ---------- Meters ---------- */
-#meters {
+/* ---------- Header ---------- */
+header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+.logo {
+  flex: none;
+  width: 46px;
+  height: 46px;
+  border-radius: 10px;
+  background: var(--accent);
+  color: #fff;
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-  gap: 10px;
-  margin-bottom: 16px;
+  place-items: center;
+  font-weight: 800;
+  font-size: 0.9rem;
+  letter-spacing: 0.04em;
+  transform: rotate(-4deg);
+}
+h1 { margin: 0; font-size: 1.6rem; line-height: 1.1; }
+.tagline { margin: 2px 0 0; color: var(--muted); font-size: 0.95rem; }
+
+/* ---------- Meters (stay pinned to the top while scrolling) ---------- */
+#meters {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  padding: 8px 0;
+  margin-bottom: 8px;
+  background: var(--bg);
 }
 .meter {
   background: var(--panel);
   border: 1px solid var(--border);
   border-radius: 8px;
-  padding: 8px 10px;
+  padding: 6px 10px;
   display: grid;
   grid-template-columns: 1fr auto;
   gap: 4px 8px;
 }
-.meter-label { font-size: 0.85rem; color: var(--muted); }
-.meter-value { font-weight: 700; text-align: right; }
+.meter-label { font-size: 0.8rem; color: var(--muted); }
+.meter-value { font-weight: 700; text-align: right; white-space: nowrap; }
 .meter-bar {
   grid-column: 1 / -1;
   height: 8px;
-  background: #e8e5de;
+  background: var(--track);
   border-radius: 4px;
   overflow: hidden;
 }
@@ -63,26 +123,74 @@ h1 { margin: 0; font-size: 1.8rem; }
 }
 .meter.warn .meter-fill { background: var(--warn); }
 .meter.danger .meter-fill { background: var(--bad); }
+.meter.danger { border-color: var(--bad); animation: pulse 1.6s ease-in-out infinite; }
 
-/* Little "+5" / "-8" numbers that flash next to a meter after a decision */
+/* Little "+5" / "-8" numbers next to a meter after a decision */
 .meter-delta { font-size: 0.8rem; font-weight: 700; }
 .meter-delta.up { color: var(--good); }
 .meter-delta.down { color: var(--bad); }
 
-/* ---------- Screens and cards ---------- */
+/* ---------- Screens ---------- */
 .screen {
   background: var(--panel);
   border: 1px solid var(--border);
-  border-radius: 10px;
+  border-radius: 12px;
   padding: 20px;
+  box-shadow: var(--shadow);
+  animation: fade-in 0.25s ease-out;
 }
 .hidden { display: none !important; }
 
-#progress { margin: 0 0 8px; color: var(--muted); font-size: 0.9rem; }
+h2 { line-height: 1.25; }
 
-.card h2 { margin: 4px 0 4px; font-size: 1.3rem; }
-.card .rfc-id { font-family: Consolas, monospace; color: var(--muted); }
-.card .requester { margin: 0 0 12px; color: var(--muted); }
+#progress { margin: 0 0 10px; color: var(--muted); font-size: 0.9rem; }
+
+/* Red box listing typos found in data.js */
+#data-problems {
+  background: var(--bad-soft);
+  border: 2px solid var(--bad);
+  border-radius: 10px;
+  padding: 12px 16px;
+  margin-bottom: 14px;
+}
+#data-problems ul { margin: 6px 0 0; padding-left: 20px; }
+
+/* ---------- RFC card ---------- */
+.card {
+  position: relative;  /* so the decision stamp can sit on top */
+  border: 1px solid var(--border);
+  border-top: 5px solid var(--accent);
+  border-radius: 10px;
+  padding: 14px 16px;
+  background: var(--panel);
+}
+.card.type-Standard { border-top-color: var(--good); }
+.card.type-Normal { border-top-color: var(--accent); }
+.card.type-Emergency { border-top-color: var(--bad); }
+
+.card h2 { margin: 2px 0 10px; font-size: 1.3rem; }
+.card .rfc-id { font-family: Consolas, monospace; color: var(--muted); font-size: 0.9rem; }
+
+.requester {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 0 14px;
+}
+.avatar {
+  flex: none;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  color: #fff;
+  font-weight: 700;
+  font-size: 0.9rem;
+}
+.requester-text { color: var(--muted); font-size: 0.95rem; }
+.requester-text strong { color: var(--text); }
+.requester-text small { display: block; font-style: italic; }
 
 .fields {
   display: grid;
@@ -96,15 +204,16 @@ h1 { margin: 0; font-size: 1.8rem; }
 .justification {
   border-left: 4px solid var(--border);
   margin: 0;
-  padding: 6px 12px;
+  padding: 8px 12px;
   font-style: italic;
-  background: #faf9f6;
+  background: var(--panel-soft);
+  border-radius: 0 6px 6px 0;
 }
 
 /* Coloured tags for risk, rollback, testing, change type */
 .tag {
   display: inline-block;
-  padding: 1px 8px;
+  padding: 1px 9px;
   border-radius: 10px;
   font-size: 0.85rem;
   font-weight: 600;
@@ -115,20 +224,57 @@ h1 { margin: 0; font-size: 1.8rem; }
 .tag.bad { background: var(--bad); }
 .tag.info { background: var(--accent); }
 
+/* Rubber stamp that lands on the card after a decision */
+.stamp {
+  position: absolute;
+  top: 38%;
+  right: 6%;
+  padding: 4px 14px;
+  border: 4px solid currentColor;
+  border-radius: 8px;
+  font-size: 1.7rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  opacity: 0.85;
+  transform: rotate(-12deg);
+  pointer-events: none;
+  animation: stamp 0.25s ease-out;
+}
+.stamp.approve { color: var(--good); }
+.stamp.reject { color: var(--bad); }
+.stamp.sendBack { color: var(--warn); }
+
 /* ---------- Buttons ---------- */
 button {
   font: inherit;
+  font-weight: 600;
   padding: 10px 16px;
-  border-radius: 6px;
+  border-radius: 8px;
   border: 1px solid transparent;
   cursor: pointer;
   color: #fff;
+  transition: filter 0.15s, transform 0.05s;
 }
+button:hover:not(:disabled) { filter: brightness(1.1); }
+button:active:not(:disabled) { transform: translateY(1px); }
+button:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
 button:disabled { opacity: 0.4; cursor: not-allowed; }
 button.primary { background: var(--accent); }
 button.approve { background: var(--good); }
 button.reject { background: var(--bad); }
 button.sendback { background: var(--warn); }
+
+/* Keyboard shortcut hint inside a button, e.g. [A] */
+kbd {
+  font-family: Consolas, monospace;
+  font-size: 0.75rem;
+  padding: 0 5px;
+  margin-left: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  border-radius: 4px;
+  opacity: 0.85;
+}
 
 #decision-buttons {
   display: flex;
@@ -137,6 +283,7 @@ button.sendback { background: var(--warn); }
   margin-top: 16px;
 }
 #reaction { min-height: 1.5em; font-style: italic; }
+.shortcut-hint { color: var(--muted); font-size: 0.8rem; margin: 6px 0 0; }
 
 /* ---------- Incident reports ---------- */
 .report {
@@ -145,13 +292,17 @@ button.sendback { background: var(--warn); }
   border-radius: 6px;
   padding: 10px 14px;
   margin: 0 0 12px;
-  background: #faf9f6;
+  background: var(--panel-soft);
 }
 .report h3 {
   margin: 0 0 4px;
   font-size: 1rem;
   font-family: Consolas, monospace;
 }
+.report p { margin: 4px 0; }
+.report-meta { color: var(--muted); font-size: 0.85rem; }
+.report-fx { font-size: 0.85rem; font-weight: 600; }
+
 /* One colour per report style: bad / warn / good / info */
 .report.bad  { border-left-color: var(--bad); }
 .report.warn { border-left-color: var(--warn); }
@@ -162,30 +313,31 @@ button.sendback { background: var(--warn); }
 .report.good h3 { color: var(--good); }
 .report.info h3 { color: var(--muted); }
 
-/* Change schedule conflict warning on an RFC card */
+/* ---------- Banners on RFC cards ---------- */
+/* Change schedule conflict warning */
 .schedule-warning {
   margin-top: 12px;
   padding: 6px 12px;
   border: 1px solid var(--warn);
   border-radius: 6px;
-  background: #fbf1dc;
+  background: var(--warn-soft);
   font-size: 0.9rem;
 }
 .schedule-warning p { margin: 4px 0; }
 
-/* Banner on an RFC card that has come back */
-.return-note {
+/* An RFC that has come back */
+.return-note,
+.status-banner {
   margin: 0 0 10px;
   padding: 6px 10px;
   border-radius: 6px;
   font-size: 0.9rem;
   font-weight: 600;
 }
-.return-note.info { background: #ecebe6; color: var(--text); }
-.return-note.bad { background: #f8e1dc; color: var(--bad); }
-.report p { margin: 4px 0; }
-.report-meta { color: var(--muted); font-size: 0.85rem; }
-.report-fx { font-size: 0.85rem; font-weight: 600; }
+.return-note.info { background: var(--info-soft); color: var(--text); }
+.return-note.bad { background: var(--bad-soft); color: var(--bad); }
+/* Freeze / promise reminder */
+.status-banner { background: var(--accent-soft); color: var(--accent); }
 
 /* ---------- Meeting intro ---------- */
 .note { color: var(--good); font-weight: 600; }
@@ -204,22 +356,11 @@ button.sendback { background: var(--warn); }
 #event-choices { display: flex; flex-wrap: wrap; gap: 10px; }
 #event-result {
   border-left: 4px solid var(--accent);
-  background: #faf9f6;
+  background: var(--panel-soft);
   padding: 8px 14px;
   margin-bottom: 14px;
 }
 #event-result ul { margin: 6px 0; padding-left: 20px; }
-
-/* Freeze / promise banner on RFC cards */
-.status-banner {
-  margin: 0 0 10px;
-  padding: 6px 10px;
-  border-radius: 6px;
-  font-size: 0.9rem;
-  font-weight: 600;
-  background: #dfe9f7;
-  color: var(--accent);
-}
 
 /* ---------- Week summary and game over ---------- */
 .rating {
@@ -245,7 +386,7 @@ button.sendback { background: var(--warn); }
   margin-bottom: 12px;
 }
 .stats div {
-  background: #faf9f6;
+  background: var(--panel-soft);
   border: 1px solid var(--border);
   border-radius: 6px;
   padding: 8px;
@@ -266,4 +407,40 @@ button.sendback { background: var(--warn); }
   font-family: Consolas, monospace;
   font-size: 0.8rem;
   color: var(--muted);
+}
+
+/* ---------- Animations ---------- */
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes stamp {
+  from { opacity: 0; transform: rotate(-12deg) scale(1.8); }
+  to { opacity: 0.85; transform: rotate(-12deg) scale(1); }
+}
+@keyframes pulse {
+  50% { box-shadow: 0 0 0 3px var(--bad-soft); }
+}
+/* Respect people who've asked their computer for less motion. */
+@media (prefers-reduced-motion: reduce) {
+  * { animation: none !important; transition: none !important; }
+}
+
+/* ---------- Small screens (phones) ---------- */
+@media (max-width: 600px) {
+  body { padding: 10px; }
+  h1 { font-size: 1.35rem; }
+  .tagline { font-size: 0.85rem; }
+  /* Compact meters so they don't take over the screen */
+  #meters { grid-template-columns: repeat(2, 1fr); gap: 6px; padding: 6px 0; }
+  .meter { padding: 4px 8px; gap: 2px 6px; }
+  .meter-label { font-size: 0.72rem; }
+  .meter-value { font-size: 0.9rem; }
+  .meter-bar { height: 6px; }
+  .screen { padding: 14px; }
+  .fields { grid-template-columns: 1fr; gap: 0; }
+  .fields dd { margin-bottom: 8px; }
+  #decision-buttons button, #event-choices button { flex: 1 1 100%; }
+  kbd, .shortcut-hint { display: none; }
+  .stamp { font-size: 1.1rem; top: 14px; right: 24px; border-width: 3px; padding: 2px 8px; }
 }

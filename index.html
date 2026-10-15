@@ -8,8 +8,11 @@
 </head>
 <body>
   <header>
-    <h1>CAB Simulator</h1>
-    <p class="tagline">You are the Chair of the Change Advisory Board. Good luck.</p>
+    <div class="logo" aria-hidden="true">CAB</div>
+    <div>
+      <h1>CAB Simulator</h1>
+      <p class="tagline">You are the Chair of the Change Advisory Board. Good luck.</p>
+    </div>
   </header>
 
   <!-- The four meters. game.js fills in the numbers and bar widths. -->
@@ -37,6 +40,9 @@
   </section>
 
   <main>
+    <!-- Only appears if data.js has a typo. game.js fills it in. -->
+    <div id="data-problems" class="hidden"></div>
+
     <!-- SCREEN 1: intro before each meeting. game.js fills in the text. -->
     <section id="screen-intro" class="screen">
       <h2 id="intro-title"></h2>
@@ -56,10 +62,11 @@
       <p id="progress"></p>
       <article id="rfc-card" class="card"></article>
       <div id="decision-buttons">
-        <button data-decision="approve" class="approve">Approve</button>
-        <button data-decision="reject" class="reject">Reject</button>
-        <button data-decision="sendBack" class="sendback">Send Back for More Info</button>
+        <button data-decision="approve" class="approve">Approve<kbd>A</kbd></button>
+        <button data-decision="reject" class="reject">Reject<kbd>R</kbd></button>
+        <button data-decision="sendBack" class="sendback">Send Back for More Info<kbd>S</kbd></button>
       </div>
+      <p class="shortcut-hint">Keyboard: A / R / S to decide, Enter to continue.</p>
       <p id="reaction"></p>
       <button id="btn-next" class="primary hidden">Next RFC</button>
     </section>
