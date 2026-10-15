@@ -13,9 +13,15 @@
       <h1>CAB Simulator</h1>
       <p class="tagline">You are the installation's Change Manager. Decide what's ready for the CAB.</p>
     </div>
-    <button id="btn-catalogue" class="ghost" title="Standard Change Catalogue (C)">
-      &#128216; Standard Change Catalogue<kbd>C</kbd>
-    </button>
+    <div class="header-tools">
+      <button id="btn-catalogue" class="ghost" title="Standard Change Catalogue (C)">
+        &#128216; Standard Change Catalogue<kbd>C</kbd>
+      </button>
+      <!-- Training mode: shows rollback/testing ratings on the card. -->
+      <label class="quick-toggle" title="Training mode: show rollback and testing ratings on each card">
+        <input type="checkbox" id="quick-ratings"> Quick ratings
+      </label>
+    </div>
   </header>
 
   <!-- The four meters. game.js fills in the numbers and bar widths. -->
@@ -54,8 +60,11 @@
         <p>You're the <strong>Change Manager</strong>. You don't approve changes: the CAB does.
           Your job is to decide what's <strong>ready</strong> to go in front of the board.</p>
         <ul>
+          <li><strong>Check the attachments</strong> (or press 1-4): implementation plan,
+            rollback plan, test results, diagram. Are they about <em>this</em> change? Do they
+            actually say how it was tested and how to undo it?</li>
           <li><strong>Ready for CAB:</strong> it goes on Thursday's agenda. Well-prepared RFCs
-            (solid rollback plan, real testing) usually get approved. Send the board half-baked
+            (a real rollback plan, real testing) usually get approved. Send the board half-baked
             RFCs and they'll ask why you let it through.</li>
           <li><strong>Not Ready:</strong> it goes back to the requester to fix. Good catch if it
             was weak; an annoyed requester (and a delay) if it was fine.</li>
@@ -85,7 +94,7 @@
         <!-- Only shown during a change freeze (game.js toggles it). -->
         <button data-decision="hold" class="hold hidden">Place on Hold<kbd>H</kbd></button>
       </div>
-      <p class="shortcut-hint">Keyboard: R = ready, N = not ready<span id="hold-hint" class="hidden">, H = hold</span>, Enter to continue.</p>
+      <p class="shortcut-hint">Keyboard: 1-4 = open attachments, R = ready, N = not ready<span id="hold-hint" class="hidden">, H = hold</span>, Enter to continue.</p>
       <p id="reaction"></p>
       <button id="btn-next" class="primary hidden">Next RFC</button>
     </section>
@@ -140,6 +149,16 @@
     <div id="catalogue-entries"></div>
   </dialog>
 
+  <!-- Document viewer for RFC attachments (rollback plans, test results...). -->
+  <dialog id="artifact-viewer" aria-labelledby="artifact-title">
+    <div class="catalogue-header">
+      <h2 id="artifact-title"></h2>
+      <button id="btn-artifact-close" class="ghost" aria-label="Close document">Close</button>
+    </div>
+    <p class="artifact-prompt">Is this document about <em>this</em> change, and does it tell the board what it needs to know?</p>
+    <div id="artifact-body" class="document"></div>
+  </dialog>
+
   <!-- Order matters: data first, then the logic that uses it. -->
   <script src="data.js"></script>
   <!-- The change requests, one file per category (500 in total). -->
@@ -148,6 +167,8 @@
   <script src="data/rfcs-switches.js"></script>
   <script src="data/rfcs-servers.js"></script>
   <script src="data/rfcs-software.js"></script>
+  <!-- Builds the documents attached to each RFC. -->
+  <script src="artifacts.js"></script>
   <script src="game.js"></script>
 </body>
 </html>

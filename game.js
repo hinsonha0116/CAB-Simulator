@@ -115,7 +115,7 @@ function checkData() {
     if (!MENTOR[k] || MENTOR[k].length === 0) dataProblems.push(`MENTOR: missing ${k}`);
   });
   ["emergencyDelayed", "freezeViolation", "fakeStandard", "rankPressure", "forwardedJunk",
-   "sentBackReady", "collisions", "badRollback", "partialTesting", "goodProcessBadLuck",
+   "sentBackReady", "didntReview", "collisions", "badRollback", "partialTesting", "goodProcessBadLuck",
    "lowLeadership", "lowAudit", "lowStability", "lowSanity", "perfectWeek"].forEach(k => {
     if (!MENTOR.tips || !MENTOR.tips[k] || MENTOR.tips[k].length === 0) dataProblems.push(`MENTOR: missing tips.${k}`);
   });
@@ -511,6 +511,9 @@ function queueResubmission(rfc, whyBack) {
   if (Math.random() < IMPROVE_CHANCE[person.followThrough]) {
     resubmitted.testing = BETTER_TESTING[rfc.testing];
     resubmitted.rollback = BETTER_ROLLBACK[rfc.rollback];
+    // Hand-written documents described the OLD version, so let the
+    // generator write fresh ones that match the improved quality.
+    delete resubmitted.artifacts;
     const changes = [];
     if (resubmitted.testing !== rfc.testing) changes.push(`testing ${rfc.testing} → ${resubmitted.testing}`);
     if (resubmitted.rollback !== rfc.rollback) changes.push(`rollback ${rfc.rollback} → ${resubmitted.rollback}`);
@@ -719,6 +722,9 @@ function chrisDebrief(entries) {
     ["rankPressure", entries.filter(h => h.decision === "ready" && h.rfc.type === "Normal" && h.assessment === "notReady" && clout(h) === "High")],
     ["forwardedJunk", entries.filter(h => h.decision === "ready" && h.rfc.type === "Normal" && h.assessment === "notReady" && clout(h) !== "High")],
     ["sentBackReady", entries.filter(h => h.decision === "sendBack" && h.rfc.type !== "Emergency" && h.assessment === "ready")],
+    // Forwarded without opening the rollback plan or test results that were attached.
+    ["didntReview", entries.filter(h => h.decision === "ready" && h.rfc.type !== "Emergency" && h.attached &&
+      ["rollback", "testing"].some(k => h.attached.includes(k) && !h.reviewed.includes(k)))],
     ["collisions", entries.filter(h => h.collisions)],
     ["badRollback", entries.filter(h => outage(h) && h.rfc.rollback !== "solid")],
     ["partialTesting", entries.filter(h => outage(h) && h.assessment === "borderline")],
@@ -1003,11 +1009,13 @@ function renderCard(rfc) {
       <dt>Stated risk</dt>     <dd>${tag(rfc.statedRisk, RISK_COLOURS[rfc.statedRisk])}</dd>
       <dt>Systems affected</dt><dd>${rfc.systems.join(", ")}</dd>
       <dt>Window</dt>          <dd>${rfc.window}</dd>
-      <dt>Rollback plan</dt>   <dd>${tag(rfc.rollback, ROLLBACK_COLOURS[rfc.rollback])}</dd>
-      <dt>Testing evidence</dt><dd>${tag(rfc.testing, TESTING_COLOURS[rfc.testing])}</dd>
+      ${quickRatingsOn() ? `
+      <dt>Rollback plan</dt>   <dd>${tag(rfc.rollback, ROLLBACK_COLOURS[rfc.rollback])} <small class="training">training mode</small></dd>
+      <dt>Testing evidence</dt><dd>${tag(rfc.testing, TESTING_COLOURS[rfc.testing])} <small class="training">training mode</small></dd>` : ""}
       ${renderCatalogueField(rfc)}
     </dl>
     <blockquote class="justification">"${rfc.justification}"</blockquote>
+    ${renderAttachments(rfc)}
     ${renderScheduleWarning(rfc)}
   `;
 
@@ -1020,6 +1028,68 @@ function renderCard(rfc) {
   document.getElementById("hold-hint").classList.toggle("hidden", !state.freeze);
   document.getElementById("btn-next").classList.add("hidden");
 }
+
+// ---------------------------------------------------------------------
+// ATTACHMENTS: the documents submitted with each RFC (built in
+// artifacts.js). The player opens them to judge whether the RFC is ready.
+// ---------------------------------------------------------------------
+
+// Which documents the player has opened for the card on screen.
+let openedArtifacts = new Set();
+
+// Training mode: show the rollback/testing ratings on the card.
+// Remembered in this browser only (localStorage), and it's fine if that fails.
+function quickRatingsOn() {
+  return document.getElementById("quick-ratings").checked;
+}
+try {
+  document.getElementById("quick-ratings").checked = localStorage.getItem("cab-quick-ratings") === "on";
+} catch (e) { /* storage blocked: just start with it off */ }
+document.getElementById("quick-ratings").addEventListener("change", event => {
+  try { localStorage.setItem("cab-quick-ratings", event.target.checked ? "on" : "off"); } catch (e) { }
+  // Redraw the card on screen (keeping the stamp if a decision was made).
+  const onReview = !document.getElementById("screen-meeting").classList.contains("hidden");
+  const decided = document.querySelector("#rfc-card .stamp");
+  if (onReview && !decided) renderCard(state.queue[state.currentIndex]);
+});
+
+function renderAttachments(rfc) {
+  const buttons = getArtifacts(rfc).map((doc, i) => {
+    if (!doc.html) {
+      return `<span class="attachment missing">${doc.icon} ${doc.label} <em>not attached</em></span>`;
+    }
+    const seen = openedArtifacts.has(doc.key) ? ` <span class="seen">&#10003;</span>` : "";
+    return `<button class="attachment" data-artifact="${i}">${doc.icon} ${doc.label}${seen}<kbd>${i + 1}</kbd></button>`;
+  }).join("");
+  return `<div class="attachments"><p class="attachments-title">Attachments</p>${buttons}</div>`;
+}
+
+function openArtifact(index) {
+  const rfc = state.queue[state.currentIndex];
+  const doc = getArtifacts(rfc)[index];
+  if (!doc || !doc.html) return;
+  openedArtifacts.add(doc.key);
+  document.getElementById("artifact-title").innerHTML = `${doc.icon} ${doc.label}`;
+  document.getElementById("artifact-body").innerHTML = doc.html;
+  const dialog = document.getElementById("artifact-viewer");
+  dialog.showModal();
+  dialog.scrollTop = 0;
+  // Tick the attachment on the card.
+  const button = document.querySelector(`#rfc-card [data-artifact="${index}"]`);
+  if (button && !button.querySelector(".seen")) {
+    button.querySelector("kbd").insertAdjacentHTML("beforebegin", ` <span class="seen">&#10003;</span>`);
+  }
+}
+
+document.getElementById("btn-artifact-close").addEventListener("click", () => {
+  document.getElementById("artifact-viewer").close();
+});
+// Clicking outside the document closes it.
+document.getElementById("artifact-viewer").addEventListener("click", event => {
+  const box = event.currentTarget.getBoundingClientRect();
+  if (event.clientX < box.left || event.clientX > box.right ||
+      event.clientY < box.top || event.clientY > box.bottom) event.currentTarget.close();
+});
 
 // "Change schedule" check: warn if this RFC touches the same system as
 // something already marked ready this week, or later in the queue.
@@ -1138,6 +1208,8 @@ function renderStats(entries) {
     if (h.cabLabel) result += ` → ${h.cabLabel.toLowerCase()}`;
     if (h.implementation) result += ` (${h.implementation.label.toLowerCase()})`;
     if (h.collisions) result += h.collisions.length === 1 ? " + collision" : ` + ${h.collisions.length} collisions`;
+    // Reveal what the documents were really showing, so the player can learn.
+    result += ` <small class="truth">rollback ${h.rfc.rollback} &middot; testing ${h.rfc.testing}</small>`;
     const mark = wasGoodCall(h) ? `<span class="call good">&#10003;</span>` : `<span class="call bad">&#10007;</span>`;
     return `<li>${mark} <span class="when">Wk ${h.week}</span> <strong>${h.rfc.id}</strong> ` +
       `${h.rfc.title}: ${DECISION_LABELS[h.decision]}${result}</li>`;
@@ -1233,6 +1305,7 @@ function newGame() {
 function startReview() {
   state.queue = drawQueue();
   state.currentIndex = 0;
+  openedArtifacts = new Set();
   renderMeters();
   showScreen("screen-meeting");
   renderCard(state.queue[0]);
@@ -1246,7 +1319,10 @@ function makeDecision(decision) {
   // No meters move yet: the consequences arrive at the CAB.
   state.history.push({
     week: state.week, rfc, decision, assessment,
-    freezeViolation: decision === "ready" && state.freeze && rfc.type !== "Emergency"
+    freezeViolation: decision === "ready" && state.freeze && rfc.type !== "Emergency",
+    // Which documents were attached, and which ones the player actually opened.
+    attached: getArtifacts(rfc).filter(doc => doc.html).map(doc => doc.key),
+    reviewed: [...openedArtifacts]
   });
 
   // The requester's reaction (they find out straight away if it's sent back).
@@ -1278,6 +1354,7 @@ function nextCard() {
   if (state.currentIndex >= state.queue.length) {
     holdCab();
   } else {
+    openedArtifacts = new Set();  // fresh card, nothing opened yet
     renderCard(state.queue[state.currentIndex]);
   }
 }
@@ -1495,6 +1572,8 @@ document.getElementById("catalogue").addEventListener("click", event => {
 document.getElementById("rfc-card").addEventListener("click", event => {
   const button = event.target.closest("[data-catalogue]");
   if (button) openCatalogue(button.dataset.catalogue);
+  const attachment = event.target.closest("[data-artifact]");
+  if (attachment) openArtifact(Number(attachment.dataset.artifact));
 });
 
 // Keyboard shortcuts: R = ready, N = not ready, H = hold (freeze only),
@@ -1508,8 +1587,16 @@ document.addEventListener("keydown", event => {
   // While the catalogue is open, the game's shortcuts are paused
   // (Escape closes it - the browser handles that for us).
   if (document.getElementById("catalogue").open) return;
+  if (document.getElementById("artifact-viewer").open) return;
   if (event.key.toLowerCase() === "c") {
     openCatalogue();
+    return;
+  }
+
+  // 1-4: open the matching attachment on the card.
+  const onReviewScreen = !document.getElementById("screen-meeting").classList.contains("hidden");
+  if (onReviewScreen && ["1", "2", "3", "4"].includes(event.key)) {
+    openArtifact(Number(event.key) - 1);
     return;
   }
 

@@ -658,7 +658,10 @@ RFCS.push(
     requester: "mason", type: "Standard", catalogueId: "SC-01", statedRisk: "Low",
     systems: ["NIPR Core Router"], window: "Wed 0700-0715",
     rollback: "solid", testing: "yes", hiddenRisk: "Low",
-    justification: "Mrs. Okafor filled this one out herself and made me promise not to change a word. Redundant supply, other one's healthy, hot-swap, same part. I didn't touch it. Honest."
+    justification: "Mrs. Okafor filled this one out herself and made me promise not to change a word. Redundant supply, other one's healthy, hot-swap, same part. I didn't touch it. Honest.",
+    artifacts: {
+      implementation: "Written by L. Okafor. Mason: do not edit this.\n\n- Confirm power supply 2 is healthy (green on the panel and in monitoring).\n- Remove failed power supply 1. Insert the replacement from stock (same part number, checked).\n- Confirm both supplies show green and the alarm clears.\n- Update the property book.\n\nWindow: Wed 0700-0715. I'll be done by 0705."
+    }
   },
   {
     id: "RT-088", title: "Route the new drone hangar",

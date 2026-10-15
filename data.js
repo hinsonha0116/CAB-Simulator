@@ -511,13 +511,18 @@ const MENTOR = {
       "I know who sent {ids}. It still had no real rollback plan or testing. Your job is to protect the network, not the requester's feelings, whatever their rank."
     ],
     forwardedJunk: [
-      "You forwarded {ids} without a real rollback plan or testing evidence. Before anything goes to the board, look at those two lines first. If both are weak, it isn't ready.",
+      "You forwarded {ids} without a real rollback plan or testing evidence. Before anything goes to the board, open the rollback plan and the test results. If both are weak, it isn't ready.",
       "The board had to ask why {ids} reached them. Rule of thumb: solid rollback plus real testing is ready. Missing either one, think hard. Missing both, send it back.",
       "{ids} wasn't ready. The stated risk is the requester's opinion; the rollback plan and the test evidence are the facts. Judge on the facts."
     ],
     sentBackReady: [
       "You sent back {ids}, and it was ready: solid rollback, real testing. Every bounce costs goodwill and time, and sometimes the problem gets worse while it waits. Don't make good work jump through hoops.",
       "{ids} had everything the board asks for and you still bounced it. Being careful is good. Being a wall isn't. Requesters stop bothering to do it right if right gets sent back too."
+    ],
+    didntReview: [
+      "You sent {ids} to the board without opening the rollback plan or the test results. The summary on the card is the requester's opinion. The attachments are the evidence. Read them.",
+      "{ids} went forward and you never opened the documents. Half the RFCs I see have a rollback plan copied from some other change. You only catch that by reading it: check the RFC number and the systems at the top.",
+      "Before {ids} went forward, did you look at the test results? Check three things: was it tested on the same kind of kit, is the report about this change, and is it recent."
     ],
     collisions: [
       "{ids} collided with another change on the same system. When you see the yellow schedule warning, think about whether both should go in the same week. Stagger work on the same configuration items.",

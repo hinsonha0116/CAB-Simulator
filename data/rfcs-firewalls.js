@@ -18,6 +18,11 @@ RFCS.push(
     rollback: "weak", testing: "none", hiddenRisk: "High",
     justification: "The Colonel purchased a new VTC system with his own funds and it 'needs some ports'. The vendor's guide says to open 'all UDP'. The Colonel needs it for Monday's brief.",
     rejectedReport: "The XO informed the Colonel that 'the CAB' is why Monday's brief will be by speakerphone. The Colonel now knows what a CAB is.",
+    artifacts: {
+      testing: "Attached: page 4 of the VTC vendor's home-user setup guide.\n\n\"For the best experience, open all UDP ports on your home router, from any address. If you still have problems, turn off your firewall.\"\n\nNo testing has been done on the installation network. The XO has highlighted the second sentence in yellow.",
+      rollback: "If the VTC causes any problems, the XO will tell the Colonel, and the Colonel will tell the network team to fix it.",
+      diagramNote: "A photo of the box the VTC system came in. The box has a picture of a happy family on a video call."
+    },
     outageReport: "Opening 'all UDP' let the VTC work, and also let a vulnerability scanner from higher HQ find 40 new open ports. Inspection finding opened before breakfast."
   },
   {
@@ -899,7 +904,11 @@ RFCS.push(
     systems: ["NIPR Perimeter Firewall"], window: "Sat 0000-0600",
     rollback: "solid", testing: "yes", hiddenRisk: "Medium",
     justification: "The current rule base is 11 years of layered guesswork. I've rebuilt it clean: 2,100 rules down to 340, validated against 30 days of real traffic. Old config loads back in 90 seconds. Yes, it's big. That's why I tested it.",
-    rejectedReport: "Annie has informed the board, in writing, that she won't be submitting another RFC this fiscal year. She cc'd Mason, for reasons nobody can explain."
+    rejectedReport: "Annie has informed the board, in writing, that she won't be submitting another RFC this fiscal year. She cc'd Mason, for reasons nobody can explain.",
+    artifacts: {
+      rollback: "Roll back if:\n- Any mission system loses connectivity for more than 2 minutes\n- More than 5 help desk calls in the first 30 minutes\n- I say so\n\nSteps:\n- The current 2,100-rule policy is archived on the Firewall Management Server as LEGACY-FINAL.\n- Load LEGACY-FINAL and push it. Rehearsed three times in the lab: 90 seconds each time.\n- Confirm both perimeter units show the legacy policy version.\n\nPoint of no return: none. The old policy can be restored at any time.\n\nMason is not on the call.",
+      testing: "Environment: the lab perimeter pair, same model and firmware as production.\n\nMethod: replayed 30 days of real perimeter traffic (1.2 billion sessions) against both the old and new policy.\n\n- Sessions allowed by old policy, allowed by new: 99.98%\n- Sessions allowed by old policy, blocked by new: 0.02% (every one reviewed; all were to retired or malicious hosts, list attached)\n- Sessions blocked by both: as expected\n\nPeer-reviewed by CW2 Jackson, who wrote 'Good.' on it."
+    }
   },
   {
     id: "FW-118", title: "Renew the SIPR perimeter firewall certificate",
@@ -957,7 +966,11 @@ RFCS.push(
     requester: "mason", type: "Normal", statedRisk: "Low",
     systems: ["Data Center Firewall"], window: "Thursday, I reckon",
     rollback: "missing", testing: "none", hiddenRisk: "Low",
-    justification: "Annie's got a firewall thing for Building 900. She knows what she's doing, so I left the technical stuff off. Rollback: Annie. Testing: Annie. Annie doesn't know I submitted this yet."
+    justification: "Annie's got a firewall thing for Building 900. She knows what she's doing, so I left the technical stuff off. Rollback: Annie. Testing: Annie. Annie doesn't know I submitted this yet.",
+    artifacts: {
+      implementation: "Steps:\n- Annie does the firewall thing.\n\nContacts: Annie (she doesn't know yet), Mason (cell number on the Gantt chart).",
+      rollback: "Ask Annie.\n\n(Note added by Annie after finding this RFC: I have a full rollback plan. Mason did not ask for it. I will resubmit this myself.)"
+    }
   },
   {
     id: "FW-126", title: "Open some ports for the range camera project",

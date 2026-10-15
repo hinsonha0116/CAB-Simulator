@@ -306,6 +306,9 @@ RFCS.push(
     systems: ["Logistics Database", "Virtualization Cluster"], window: "Sat 0100-0500",
     rollback: "solid", testing: "yes", hiddenRisk: "Medium",
     justification: "Current storage is out of support and logging errors. Three rehearsals. Full backup. Go/no-go checkpoint at 0200. Old storage stays live until Monday.",
+    artifacts: {
+      rollback: "Go/no-go checkpoint at 0200. If the data copy is less than 60% complete, or any verification check has failed, I call NO-GO and we stay on the old storage.\n\nAfter cutover, roll back if:\n- Any supply transaction fails in the post-cutover check\n- Database response time is more than double the baseline\n\nSteps:\n- Point the database back at the old storage (it stays live and untouched until Monday).\n- Replay the transaction log from cutover time, which is captured separately.\n- Supply section re-runs the standard checks.\n\nTime to restore: 20 minutes, measured in rehearsal 3.\n\nI keep notes. These are them. G. Albright"
+    },
     returnsAsEmergency: {
       reason: "The old storage lost two disks overnight. The logistics database is running with no redundancy. One more failure and the supply system is gone.",
       title: "EMERGENCY: Move logistics database off failing storage",

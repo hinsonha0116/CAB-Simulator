@@ -17,8 +17,14 @@ Your Sanity) above zero.
 
 Each week:
 
-1. **Review your queue** of 5-10 RFCs. For each one choose **Ready for CAB**
-   (keyboard **R**) or **Not Ready: Send Back** (**N**).
+1. **Review your queue** of 5-10 RFCs. Each comes with **attachments** you
+   can open (keyboard **1-4**): an implementation plan, a rollback plan, test
+   results and a before/after diagram. Read them: is each one about *this*
+   change, and does it really say how it was tested and how to undo it?
+   Some are vague, some are missing, and some were copy-pasted from a
+   different change. Then choose **Ready for CAB** (keyboard **R**) or
+   **Not Ready: Send Back** (**N**). New players can tick **Quick ratings**
+   in the header to see a summary of each RFC's rollback and testing.
    - *Standard* changes are pre-authorized: if ready, they're logged and skip the CAB.
      Check the catalogue: some "standard" changes aren't.
    - *Emergency* changes go to the Emergency CAB the same day.
@@ -69,5 +75,6 @@ live in the `data/` folder (one file per category); everything else is in
 | `style.css` | Look and feel, including dark mode |
 | `data.js` | Characters, events, report text, ratings, Standard Change Catalogue |
 | `data/rfcs-*.js` | **The 500 change requests**, by category. Add your own here! |
+| `artifacts.js` | Builds the documents attached to each RFC (rollback plans, test results, diagrams) |
 | `game.js` | Game rules and logic |
 | `HOW-TO-ADD-SCENARIOS.md` | Guide to writing new content |
