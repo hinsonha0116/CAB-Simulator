@@ -22,14 +22,21 @@
    - GENERIC_REPORTS:     incident report text, per category
    - COLLISION_REPORTS:   two approved changes on the same system clash
    - RESUBMISSION_NOTES:  what a sent-back RFC says when it returns
-   - MEETING_INTROS:      scene-setting lines shown before each meeting
+   - MEETING_INTROS:      scene-setting lines shown at the top of the CAB results
+   - CAB_COMMENTS:        what the board says about the RFCs you sent them
    - PERFORMANCE_RATINGS: end-of-week titles and jokes
-   - EVENTS:              random events between meetings
+   - EVENTS:              random events between weeks
    - STANDARD_CHANGE_CATALOGUE: pre-authorized change types
 
    ITIL quick reference (used to flavour the scenarios):
+   - Change Manager:   that's you. You check each RFC is complete and ready
+                       before it goes to the CAB. You don't approve it.
+   - CAB:              the Change Advisory Board. Meets weekly, assesses and
+                       authorizes Normal changes.
+   - ECAB:             the Emergency CAB. Convened quickly for Emergency changes.
    - Standard change:  low risk, pre-authorized, follows a known procedure.
-   - Normal change:    needs assessment and authorization (that's you, CAB).
+                       Doesn't need the CAB at all.
+   - Normal change:    needs assessment and authorization by the CAB.
    - Emergency change: must happen ASAP (e.g. an active intrusion or a
                        failed critical device). Expedited, but still recorded.
    - Change freeze:    a period (exercise, inspection, VIP visit) when only
@@ -55,10 +62,15 @@ const RFC_CATEGORIES = {
 
 /* ---------------------------------------------------------------------
    CHARACTERS
-   clout:         how likely they are to escalate a rejection (Low/Medium/High)
-   followThrough: how likely they are to IMPROVE an RFC you sent back
+   clout:         how likely they are to escalate when the CAB rejects their
+                  change, and how much the board bends for them (Low/Medium/High)
+   followThrough: how likely they are to IMPROVE an RFC that was sent back
    shortName:     used in report text, e.g. "SSG Kowalski"
-   reactions.hold is optional (used when you place a change on hold)
+   reactions:
+     approve:  when the CAB approves their change
+     reject:   when the CAB rejects their change
+     sendBack: when YOU mark it not ready and send it back
+     hold:     (optional) when you place it on hold during a freeze
    --------------------------------------------------------------------- */
 const CHARACTERS = {
   reyes: {
@@ -352,7 +364,7 @@ const RESUBMISSION_NOTES = {
   ]
 };
 
-// Short scene-setting lines shown before each meeting (picked at random).
+// Short scene-setting lines shown at the top of the CAB results (picked at random).
 const MEETING_INTROS = [
   "The VTC has frozen on the Sergeant Major's face. Nobody dares to mention it.",
   "Half the board is in the field. One member is dialling in from a Humvee.",
@@ -363,31 +375,73 @@ const MEETING_INTROS = [
   "The SIPR terminal in the conference room has been 'updating' since Tuesday."
 ];
 
+/* ---------------------------------------------------------------------
+   CAB COMMENTS: what the board says about the RFCs you send them.
+   The CAB is chaired by MAJ Albright, with CW2 Jackson and Morgan.
+     wellPrepared:   a Normal change you sent that WAS ready
+     borderline:     one with some gaps
+     poorlyPrepared: one that should never have reached the board
+     standardLogged: a Standard change you logged (it skips the board)
+     ecab:           opening line for an Emergency CAB
+     freezePulled:   a non-emergency you sent during a change freeze
+   --------------------------------------------------------------------- */
+const CAB_COMMENTS = {
+  wellPrepared: [
+    "MAJ Albright: 'Rollback plan, test evidence, a sensible window. This is what an RFC should look like.'",
+    "CW2 Jackson: 'Clean.' He moves to the next item. From him, that's a standing ovation.",
+    "Morgan: 'No security concerns. I'm almost suspicious.'",
+    "The board gets through it in under a minute. MAJ Albright nods at you."
+  ],
+  borderline: [
+    "MAJ Albright: 'There are gaps here, but I can live with them.'",
+    "CW2 Jackson asks two pointed questions. The requester answers one of them.",
+    "Morgan: 'Partial testing. I'll be watching the logs that night.'",
+    "The board debates it for ten minutes. Opinions are split."
+  ],
+  poorlyPrepared: [
+    "MAJ Albright: 'Who reviewed this before it reached my board?' Everyone turns to look at you.",
+    "CW2 Jackson reads the rollback section aloud. It takes two seconds. He stares at you.",
+    "Morgan: 'There's no testing evidence. None. Why is this on the agenda?'",
+    "The board spends 25 minutes on this RFC and the rest of the agenda runs late. MAJ Albright writes something in her green notebook."
+  ],
+  standardLogged: [
+    "Logged as a pre-authorized standard change. It never needed the board's time.",
+    "Recorded against the catalogue and scheduled. MAJ Albright appreciates not seeing it.",
+    "Pre-authorized. The board will only hear about it if something goes wrong."
+  ],
+  ecab: [
+    "Emergency CAB convened by phone within the hour.",
+    "MAJ Albright, CW2 Jackson and Morgan dial in to an Emergency CAB from three different locations.",
+    "ECAB convened. MAJ Albright joins from the motor pool, slightly out of breath."
+  ],
+  freezePulled: [
+    "MAJ Albright: 'We are in a change freeze. Why is this on my agenda?' It's pulled and placed on hold.",
+    "The board refuses to discuss it during the freeze. It's placed on hold, and the XO hears that you tried.",
+    "CW2 Jackson: 'Freeze.' One word. The item is pulled and held."
+  ]
+};
+
 // End-of-week performance titles. game.js decides WHICH one you get.
 const PERFORMANCE_RATINGS = {
   incidentFactory: {
     title: "Chief of Unplanned Outages",
-    blurb: "The help desk has a dartboard. Your photo is on it."
+    blurb: "Plenty of changes reached production this week. So did plenty of incidents. The help desk has a dartboard with your photo on it."
   },
   wallOfNo: {
     title: "The Concertina Wire",
-    blurb: "Nothing gets through you. Not threats, not patches, not the Colonel's VTC upgrade."
-  },
-  needsMoreInfo: {
-    title: "Professional Memo Generator",
-    blurb: "Every RFC comes back with a new memo. Your backlog now needs its own ATO."
+    blurb: "Almost nothing got past you to the CAB. The board met just to drink coffee. Requesters have started a support group."
   },
   rubberStamp: {
     title: "Rubber Stamp, Signal Corps",
-    blurb: "You approved almost everything. Some of it caught fire. You remain optimistic."
+    blurb: "You forwarded nearly everything, including RFCs with no rollback plan. MAJ Albright has started a page in her notebook just for you."
   },
   actuallyGood: {
     title: "Actually Squared Away",
-    blurb: "Changes went in, nothing broke. Nobody will ever thank you, which is how you know it went well."
+    blurb: "Ready changes went forward, weak ones went back, and nothing broke. Nobody will ever thank you, which is how you know it went well."
   },
   cautious: {
     title: "Cautiously Mission Capable",
-    blurb: "No outages, but a fair few annoyed requesters. A respectable week of risk management."
+    blurb: "Mostly good readiness calls, with a few you'd like back. A respectable week of change management."
   },
   mediocre: {
     title: "Meets the Standard (Barely)",
@@ -396,7 +450,7 @@ const PERFORMANCE_RATINGS = {
 };
 
 /* ---------------------------------------------------------------------
-   RANDOM EVENTS between meetings.
+   RANDOM EVENTS between weeks.
    Each event has:
      title, text: [variants, one picked at random]
      suspects:    (optional) characters who might be involved; {name}
@@ -407,8 +461,8 @@ const PERFORMANCE_RATINGS = {
         result:  text shown after choosing
         effect:  (optional) a special rule handled in game.js:
                  "auditHonest"      - count findings since the last audit
-                 "freeze"           - change freeze at the next meeting
-                 "promise"          - rejecting at the next meeting costs extra
+                 "freeze"           - change freeze for this week's CAB
+                 "promise"          - sending RFCs back this week costs extra
                  "flagUnauthorized" - becomes a finding at the next audit
    --------------------------------------------------------------------- */
 const EVENTS = [
@@ -447,7 +501,7 @@ const EVENTS = [
         label: "Acknowledge the freeze",
         effect: "freeze",
         fx: {},
-        result: "At the next CAB, approve only Emergency changes. Everything else should be placed ON HOLD until the freeze lifts. Approving it anyway breaks the freeze, and the Command WILL notice."
+        result: "This week, only Emergency changes may go to the CAB. Place everything else ON HOLD until the freeze lifts. Send a non-emergency to the board anyway and it gets pulled, and the Command WILL notice."
       }
     ]
   },
@@ -455,15 +509,15 @@ const EVENTS = [
     id: "pressureCall",
     title: "A 'quick call' from the Colonel's office",
     text: [
-      "COL Whitfield's XO has called your desk phone, your mobile and your First Sergeant. The message: 'The Colonel needs CAB to be flexible this week.'",
-      "The Command Sergeant Major stops you in the hallway: 'Sir, the Commander feels CAB is slowing down the mission. Can we count on you to be flexible?'"
+      "COL Whitfield's XO has called your desk phone, your mobile and your First Sergeant. The message: 'The Colonel expects every request to reach the CAB this week. No more sending things back.'",
+      "The Command Sergeant Major stops you in the hallway: 'Sir, the Commander feels you're holding up the mission by sending RFCs back. Can we count on you to be flexible this week?'"
     ],
     choices: [
       {
-        label: "Promise to be 'flexible'",
+        label: "Promise to send everything to CAB",
         effect: "promise",
         fx: { leadership: 8, sanity: -2 },
-        result: "The Command is delighted. At the next CAB, every rejection or send-back will be a broken promise."
+        result: "The Command is delighted. This week, every RFC you send back will be a broken promise."
       },
       {
         label: "Explain why the process exists",

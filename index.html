@@ -11,7 +11,7 @@
     <div class="logo" aria-hidden="true">CAB</div>
     <div>
       <h1>CAB Simulator</h1>
-      <p class="tagline">You are the Chair of the Change Advisory Board. Good luck.</p>
+      <p class="tagline">You are the installation's Change Manager. Decide what's ready for the CAB.</p>
     </div>
     <button id="btn-catalogue" class="ghost" title="Standard Change Catalogue (C)">
       &#128216; Standard Change Catalogue<kbd>C</kbd>
@@ -46,48 +46,59 @@
     <!-- Only appears if data.js has a typo. game.js fills it in. -->
     <div id="data-problems" class="hidden"></div>
 
-    <!-- SCREEN 1: intro before each meeting. game.js fills in the text. -->
+    <!-- SCREEN 1: intro at the start of each week. game.js fills in the text. -->
     <section id="screen-intro" class="screen">
       <h2 id="intro-title"></h2>
       <p id="intro-text"></p>
-      <p id="intro-rules">You chair the installation's Change Advisory Board. Each week has two
-        CAB meetings, Tuesday and Thursday. For each change request choose
-        <strong>Approve</strong>, <strong>Reject</strong>, or <strong>Send Back</strong> for more
-        info. During a change freeze you can also <strong>Place on Hold</strong>. Approved changes
-        get implemented after the meeting, and that's when you find out how risky they really
-        were. If any meter hits 0, you're done.</p>
+      <div id="intro-rules">
+        <p>You're the <strong>Change Manager</strong>. You don't approve changes: the CAB does.
+          Your job is to decide what's <strong>ready</strong> to go in front of the board.</p>
+        <ul>
+          <li><strong>Ready for CAB:</strong> it goes on Thursday's agenda. Well-prepared RFCs
+            (solid rollback plan, real testing) usually get approved. Send the board half-baked
+            RFCs and they'll ask why you let it through.</li>
+          <li><strong>Not Ready:</strong> it goes back to the requester to fix. Good catch if it
+            was weak; an annoyed requester (and a delay) if it was fine.</li>
+          <li><strong>Standard</strong> changes are pre-authorized: if ready, they're logged and
+            skip the CAB. <strong>Emergency</strong> changes go to the Emergency CAB.</li>
+          <li>During a change freeze you can <strong>Place on Hold</strong> until it lifts.</li>
+        </ul>
+        <p>Approved changes are then implemented, and that's when you find out how risky they
+          really were. If any meter hits 0, you're done.</p>
+      </div>
       <p id="intro-tip" class="tip">Tip: "Standard" changes are pre-authorized, but only if they
         meet their entry in the <strong>Standard Change Catalogue</strong> (button at the top, or
         press C). Some requesters stretch the definition.</p>
       <p id="intro-note" class="note"></p>
       <p id="intro-alert" class="alert"></p>
-      <button id="btn-start" class="primary">Call the meeting to order</button>
+      <button id="btn-start" class="primary">Open the change queue</button>
     </section>
 
-    <!-- SCREEN 2: the meeting (one RFC card at a time) -->
+    <!-- SCREEN 2: reviewing the queue (one RFC card at a time) -->
     <section id="screen-meeting" class="screen hidden">
       <p id="progress"></p>
       <article id="rfc-card" class="card"></article>
       <div id="decision-buttons">
-        <button data-decision="approve" class="approve">Approve<kbd>A</kbd></button>
-        <button data-decision="reject" class="reject">Reject<kbd>R</kbd></button>
-        <button data-decision="sendBack" class="sendback">Send Back for More Info<kbd>S</kbd></button>
+        <!-- game.js changes the label for Standard and Emergency changes -->
+        <button data-decision="ready" class="approve"><span class="label">Ready for CAB</span><kbd>R</kbd></button>
+        <button data-decision="sendBack" class="sendback">Not Ready: Send Back<kbd>N</kbd></button>
         <!-- Only shown during a change freeze (game.js toggles it). -->
         <button data-decision="hold" class="hold hidden">Place on Hold<kbd>H</kbd></button>
       </div>
-      <p class="shortcut-hint">Keyboard: A / R / S to decide<span id="hold-hint" class="hidden">, H to hold</span>, Enter to continue.</p>
+      <p class="shortcut-hint">Keyboard: R = ready, N = not ready<span id="hold-hint" class="hidden">, H = hold</span>, Enter to continue.</p>
       <p id="reaction"></p>
       <button id="btn-next" class="primary hidden">Next RFC</button>
     </section>
 
-    <!-- SCREEN 3: overnight incident reports for approved changes -->
+    <!-- SCREEN 3: the CAB minutes and implementation results -->
+
     <section id="screen-consequences" class="screen hidden">
       <h2 id="consequences-title"></h2>
       <div id="reports"></div>
       <button id="btn-continue" class="primary">Continue</button>
     </section>
 
-    <!-- SCREEN: random event between meetings -->
+    <!-- SCREEN: random event between weeks -->
     <section id="screen-event" class="screen hidden">
       <p class="event-label">Meanwhile...</p>
       <h2 id="event-title"></h2>
@@ -123,7 +134,8 @@
       <strong>Standard changes are pre-authorized.</strong> They're low-risk, well understood,
       and follow a documented procedure, so they don't really need CAB at all. But a change
       only counts as standard if it meets <em>every</em> condition of its catalogue entry.
-      If it doesn't, it's a Normal change in disguise and deserves a proper look.
+      If it doesn't, it's a Normal change in disguise: mark it <strong>Not Ready</strong> so it
+      gets resubmitted properly.
     </p>
     <div id="catalogue-entries"></div>
   </dialog>

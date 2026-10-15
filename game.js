@@ -1,13 +1,26 @@
 /* =====================================================================
    CAB SIMULATOR - GAME LOGIC
    This file holds the RULES. The content (RFCs, characters, ratings)
-   lives in data.js, which is loaded before this file.
+   lives in data.js and the data/ folder, which are loaded first.
+
+   HOW A WEEK WORKS
+   1. Review:  you are the Change Manager. For each RFC in your queue you
+               decide whether it is READY for the CAB or NOT READY (sent
+               back to the requester). During a freeze you can also HOLD.
+               - Ready Standard changes are pre-authorized: logged, no CAB.
+               - Ready Emergency changes go to the Emergency CAB (ECAB).
+   2. CAB:     Thursday's board votes on what you sent. Well-prepared
+               RFCs usually get approved; poorly prepared ones embarrass
+               you and may get rejected (or approved anyway...).
+   3. Results: approved changes are implemented. Their HIDDEN risk
+               decides whether they cause outages.
+   4. Summary: week rating, then maybe a random event, then next week.
    ===================================================================== */
 
 // ---------------------------------------------------------------------
-// 0. DATA CHECKER - catches typos in data.js (e.g. testing: "Yes" with a
-//    capital Y) and lists them in a red box on the page. Broken RFCs are
-//    left out of the game so everything else keeps working.
+// 0. DATA CHECKER - catches typos in the data files (e.g. testing: "Yes"
+//    with a capital Y) and lists them in a red box on the page. Broken
+//    RFCs are left out of the game so everything else keeps working.
 // ---------------------------------------------------------------------
 const ALLOWED = {
   type: ["Standard", "Normal", "Emergency"],
@@ -93,6 +106,10 @@ function checkData() {
     }
   });
 
+  ["wellPrepared", "borderline", "poorlyPrepared", "standardLogged", "ecab", "freezePulled"].forEach(k => {
+    if (!CAB_COMMENTS[k] || CAB_COMMENTS[k].length === 0) dataProblems.push(`CAB_COMMENTS: missing ${k}`);
+  });
+
   EVENTS.forEach(event => {
     const where = `Event "${event.id}"`;
     if (!event.title || !event.text || !event.choices || event.choices.length === 0) {
@@ -112,7 +129,7 @@ function checkData() {
 function renderDataProblems() {
   const box = document.getElementById("data-problems");
   if (dataProblems.length === 0) return;
-  box.innerHTML = `<strong>Problems found in data.js</strong> (fix these and refresh the page):
+  box.innerHTML = `<strong>Problems found in the data files</strong> (fix these and refresh the page):
     <ul>${dataProblems.map(p => `<li>${p}</li>`).join("")}</ul>`;
   box.classList.remove("hidden");
   console.error("CAB Simulator data problems:\n" + dataProblems.join("\n"));
@@ -126,10 +143,26 @@ const PLAYABLE_RFCS = RFCS.filter(rfc => !brokenRfcs.includes(rfc));
 // 1. GAME STATE - everything the game needs to remember while playing.
 // ---------------------------------------------------------------------
 const STARTING_METER_VALUE = 50;
-const MEETING_DAYS = ["Tuesday", "Thursday"]; // CAB meetings each week
-const MIN_RFCS_PER_MEETING = 3;
-const MAX_RFCS_PER_MEETING = 5;
-const WEEKEND_SANITY_BONUS = 5;               // a weekend off helps a bit
+const CAB_DAY = "Thursday";      // one CAB meeting per week
+const MIN_RFCS_PER_WEEK = 5;     // the queue grows by 1 every 8 weeks...
+const MAX_RFCS_PER_WEEK = 8;
+const MAX_QUEUE_SIZE = 10;       // ...up to this size
+const WEEKEND_SANITY_BONUS = 4;  // a weekend off helps a bit
+
+// OPS TEMPO: every week the meters wear down a little (the network ages,
+// the Colonel always wants more, paperwork piles up, the job is tiring).
+// It gets 50% heavier every 4 weeks, so even great players eventually
+// get worn down. This is what keeps the game from going on forever.
+const WEEKLY_PRESSURE = { stability: -2, leadership: -2, audit: -2, sanity: -3 };
+const PRESSURE_GROWTH_EVERY = 4;  // weeks
+const PRESSURE_GROWTH = 0.5;      // +50% each time
+
+function weeklyPressure(week) {
+  const level = 1 + Math.floor((week - 2) / PRESSURE_GROWTH_EVERY) * PRESSURE_GROWTH;
+  const fx = {};
+  for (const m in WEEKLY_PRESSURE) fx[m] = Math.round(WEEKLY_PRESSURE[m] * level);
+  return fx;
+}
 
 let state = {}; // filled in by resetGame()
 
@@ -142,45 +175,35 @@ function resetGame() {
       sanity: STARTING_METER_VALUE
     },
     week: 1,
-    meetingIndex: 0,     // 0 = Tuesday, 1 = Thursday
-    meetingNumber: 0,    // counts every meeting so far (1, 2, 3...)
-    deck: shuffle([...PLAYABLE_RFCS]), // RFCs waiting to be put on an agenda
-    // RFCs coming back later (sent back, or returning as emergencies):
-    // { rfc, dueMeeting }
+    deck: shuffle([...PLAYABLE_RFCS]), // RFCs waiting to be put in a queue
+    // RFCs coming back in a later week (sent back, deferred, or
+    // returning as emergencies): { rfc, dueWeek }
     returning: [],
-    agenda: [],          // the RFCs in the current meeting
-    currentIndex: 0,     // which RFC on the agenda we're looking at
-    // Every decision ever made, each stamped with its week and day:
-    // { week, day, rfc, decision, report }
+    queue: [],           // this week's RFCs to review
+    currentIndex: 0,     // which RFC in the queue we're looking at
+    // Every triage decision ever made: { week, rfc, decision, ... }
     history: [],
     nextIncidentNumber: 1042,
-    // RFCs placed ON HOLD during a freeze; they return at the first
-    // meeting without a freeze.
+    // RFCs placed ON HOLD during a freeze; they return in the first
+    // week without a freeze.
     onHold: [],
     // Random event state:
-    freeze: false,        // change freeze at the next meeting?
-    promise: false,       // promised leadership to be "flexible"?
-    lastAuditMeeting: 0,  // the auditors check everything after this meeting
+    freeze: false,        // change freeze at this week's CAB?
+    promise: false,       // promised the Colonel to send everything to CAB?
+    lastAuditWeek: 0,     // the auditors check everything after this week
     auditFlags: [],       // extra findings waiting for the next audit
     currentEvent: null,   // { event, suspect } while an event is on screen
-    pendingNote: ""       // message to show on the next meeting intro
+    pendingNote: ""       // message to show on the next week's intro
   };
 }
 
-function currentDay() {
-  return MEETING_DAYS[state.meetingIndex];
-}
-
-// Handy filters over the history.
-function decisionsThisMeeting() {
-  return state.history.filter(h => h.week === state.week && h.day === currentDay());
-}
+// This week's triage decisions.
 function decisionsThisWeek() {
   return state.history.filter(h => h.week === state.week);
 }
 
 // ---------------------------------------------------------------------
-// 2. BUILDING AN AGENDA
+// 2. BUILDING THE WEEK'S QUEUE
 // ---------------------------------------------------------------------
 
 // Shuffle a list into random order (the "Fisher-Yates" shuffle).
@@ -193,94 +216,170 @@ function shuffle(list) {
 }
 
 // A returning RFC is a modified COPY of the original, with a new id
-// like "CHG0002-R1". baseId is always the original id.
+// like "FW-002-R1". baseId is always the original id.
 function baseId(rfc) {
   return rfc.baseId || rfc.id;
 }
 
-function drawAgenda() {
-  // 1. RFCs that are due back go on the agenda first, emergencies on top.
-  const due = state.returning.filter(r => r.dueMeeting <= state.meetingNumber);
-  state.returning = state.returning.filter(r => r.dueMeeting > state.meetingNumber);
-  const agenda = due.map(r => r.rfc)
+function drawQueue() {
+  // 1. RFCs due back this week go first, emergencies on top.
+  const due = state.returning.filter(r => r.dueWeek <= state.week);
+  state.returning = state.returning.filter(r => r.dueWeek > state.week);
+  const queue = due.map(r => r.rfc)
     .sort((a, b) => (b.type === "Emergency") - (a.type === "Emergency"));
 
   // Changes on hold come back as soon as there's no freeze.
   if (!state.freeze) {
-    agenda.push(...state.onHold);
+    queue.push(...state.onHold);
     state.onHold = [];
   }
 
-  // 2. Top up with fresh RFCs to 3-5 in total. When the deck runs out,
-  //    reshuffle the whole pool so the game can keep going.
-  const size = Math.max(agenda.length, MIN_RFCS_PER_MEETING +
-    Math.floor(Math.random() * (MAX_RFCS_PER_MEETING - MIN_RFCS_PER_MEETING + 1)));
+  // 2. Top up with fresh RFCs. When the deck runs out, reshuffle the
+  //    whole pool so the game can keep going.
+  const growth = Math.floor(state.week / 8);
+  const size = Math.max(queue.length, Math.min(MAX_QUEUE_SIZE, MIN_RFCS_PER_WEEK + growth +
+    Math.floor(Math.random() * (MAX_RFCS_PER_WEEK - MIN_RFCS_PER_WEEK + 1))));
 
-  // Don't deal an RFC if a version of it is already on this agenda
+  // Don't deal an RFC if a version of it is already in this queue
   // or is waiting to come back later.
   const isBlocked = rfc =>
-    agenda.some(a => baseId(a) === rfc.id) ||
+    queue.some(q => baseId(q) === rfc.id) ||
     state.returning.some(r => baseId(r.rfc) === rfc.id) ||
     state.onHold.some(held => baseId(held) === rfc.id);
 
-  while (agenda.length < size) {
+  while (queue.length < size) {
     if (state.deck.length === 0) {
       state.deck = shuffle(PLAYABLE_RFCS.filter(rfc => !isBlocked(rfc)));
     }
     const rfc = state.deck.pop();
-    if (!isBlocked(rfc)) agenda.push(rfc);
+    if (!isBlocked(rfc)) queue.push(rfc);
   }
-  return agenda;
+  return queue;
 }
 
 // ---------------------------------------------------------------------
 // 3. RULES
 // ---------------------------------------------------------------------
 
-// 3a. IMMEDIATE effects of a decision, felt in the meeting room.
-//     These only look at what's VISIBLE on the card.
-function getDecisionEffects(rfc, decision) {
-  // Start with "no change" for every meter, then add things up.
-  const fx = { stability: 0, leadership: 0, audit: 0, sanity: 0 };
+// 3a. READINESS. How well prepared does an RFC look? This only uses
+//     what's VISIBLE on the card: the rollback plan and testing evidence.
+//       rollback: solid 2, weak 1, missing 0
+//       testing:  yes 2,   partial 1, none 0
+//     So the score goes from 0 (nothing) to 4 (fully prepared).
+const ROLLBACK_POINTS = { solid: 2, weak: 1, missing: 0 };
+const TESTING_POINTS = { yes: 2, partial: 1, none: 0 };
 
-  if (decision === "approve") {
-    fx.leadership += 6;   // people like hearing "yes"
-    fx.sanity += 2;       // and you avoided an argument
-
-    // Approving without a proper rollback plan or testing hurts your audit trail.
-    if (rfc.rollback === "missing") fx.audit -= 6;
-    if (rfc.rollback === "weak") fx.audit -= 2;
-    if (rfc.testing === "none") fx.audit -= 4;
-  }
-
-  if (decision === "reject") {
-    fx.leadership -= 6;   // someone important wanted this
-    fx.sanity -= 3;       // now you have to explain yourself
-
-    // Rejecting an Emergency change is a big deal.
-    if (rfc.type === "Emergency") fx.leadership -= 4;
-    // Rejecting a pre-approved Standard change is pointless bureaucracy.
-    if (rfc.type === "Standard") { fx.sanity -= 3; fx.leadership -= 2; }
-  }
-
-  if (decision === "hold") {
-    // Holding during a freeze is the textbook move: a short delay, good records.
-    fx.leadership -= 1;
-    fx.audit += 2;
-    // But emergencies are ALLOWED through a freeze, so holding one is a mistake.
-    if (rfc.type === "Emergency") { fx.stability -= 4; fx.leadership -= 3; }
-  }
-
-  if (decision === "sendBack") {
-    fx.leadership -= 3;   // it's a delay
-    fx.audit += 3;        // but the paperwork gets better
-    fx.sanity -= 2;       // and it'll be back on your agenda
-  }
-
-  return fx;
+function readinessScore(rfc) {
+  return ROLLBACK_POINTS[rfc.rollback] + TESTING_POINTS[rfc.testing];
 }
 
-// 3b. What ACTUALLY happens to an approved change after the meeting.
+// Is it ready for the CAB? Returns "ready", "borderline" or "notReady".
+//  - Emergency changes always go forward (they can't wait).
+//  - A Standard change is only valid if it's fully prepared (score 4).
+//    If not, it isn't really standard and should be resubmitted as Normal.
+//  - Normal changes: 3-4 ready, 2 borderline, 0-1 not ready.
+function assessReadiness(rfc) {
+  const score = readinessScore(rfc);
+  if (rfc.type === "Emergency") return "ready";
+  if (rfc.type === "Standard") return score === 4 ? "ready" : "notReady";
+  if (score >= 3) return "ready";
+  if (score === 2) return "borderline";
+  return "notReady";
+}
+
+// Was the Change Manager's call a good one? (Used for triage accuracy.)
+function wasGoodCall(h) {
+  const isEmergency = h.rfc.type === "Emergency";
+  if (h.decision === "hold") return !isEmergency;           // hold is right in a freeze, except for emergencies
+  if (h.freezeViolation) return false;                      // sent to CAB during a freeze
+  if (h.assessment === "borderline") return true;           // either call is defensible
+  if (h.decision === "ready") return h.assessment === "ready";
+  return h.assessment === "notReady";                       // sent back
+}
+
+// 3b. THE CAB VOTE on a Normal change you sent forward.
+//     Chance of approval by readiness score 0..4, plus a bonus if the
+//     requester has clout (the Colonel's office gets its way more often).
+const APPROVAL_CHANCE = [0.10, 0.25, 0.50, 0.80, 0.95];
+const CLOUT_BONUS = { High: 0.20, Medium: 0.05, Low: 0 };
+const ECAB_APPROVAL_CHANCE = { prepared: 0.95, unprepared: 0.75 };
+
+// Meter changes from the CAB meeting itself.
+const CAB_FX = {
+  approved: { leadership: 2 },             // requester is happy
+  rejected: { leadership: -2 },            // requester isn't
+  deferred: { leadership: -1 },            // a delay
+  standard: { sanity: 1 },                 // no board time needed
+  ecab: { stability: 2 }                   // emergency fixed fast
+};
+// Your credibility with the board, based on what you sent them.
+const CREDIBILITY_FX = {
+  ready: { audit: 1 },
+  borderline: {},
+  notReady: { audit: -4, sanity: -3, leadership: -2 }
+};
+const FREEZE_VIOLATION_FX = { leadership: -6, audit: -4 };
+
+// Decide what the CAB does with one forwarded RFC.
+// Returns { outcome, label, style, fx, comment } and whether it gets implemented.
+function cabVote(h) {
+  const rfc = h.rfc;
+  const person = CHARACTERS[rfc.requester];
+  const fx = {};
+
+  // Sent forward during a freeze: pulled from the agenda and held.
+  if (state.freeze && rfc.type !== "Emergency") {
+    addEffects(fx, FREEZE_VIOLATION_FX);
+    return { outcome: "pulled", label: "Pulled: change freeze", style: "bad", fx,
+      comment: pickRandom(CAB_COMMENTS.freezePulled), implement: false };
+  }
+
+  // Standard changes are pre-authorized: logged, never voted on.
+  if (rfc.type === "Standard") {
+    addEffects(fx, CAB_FX.standard);
+    return { outcome: "standard", label: "Logged as Standard (no CAB)", style: "good", fx,
+      comment: pickRandom(CAB_COMMENTS.standardLogged), implement: true };
+  }
+
+  // Emergency changes go to the Emergency CAB.
+  if (rfc.type === "Emergency") {
+    const chance = readinessScore(rfc) >= 2 ? ECAB_APPROVAL_CHANCE.prepared : ECAB_APPROVAL_CHANCE.unprepared;
+    if (Math.random() < chance) {
+      addEffects(fx, CAB_FX.ecab);
+      return { outcome: "approved", label: "Approved by ECAB", style: "good", fx,
+        comment: `${pickRandom(CAB_COMMENTS.ecab)} ${person.reactions.approve}`, implement: true };
+    }
+    addEffects(fx, CAB_FX.rejected);
+    return { outcome: "rejected", label: "Rejected by ECAB", style: "warn", fx,
+      comment: `${pickRandom(CAB_COMMENTS.ecab)} The board isn't convinced it's safe. ${person.reactions.reject}`,
+      implement: false };
+  }
+
+  // Normal change: the board votes. How it reads the RFC also reflects on you.
+  addEffects(fx, CREDIBILITY_FX[h.assessment]);
+  const boardComment = pickRandom(CAB_COMMENTS[{
+    ready: "wellPrepared", borderline: "borderline", notReady: "poorlyPrepared"
+  }[h.assessment]]);
+
+  const chance = Math.min(0.98, APPROVAL_CHANCE[readinessScore(rfc)] + CLOUT_BONUS[person.clout]);
+  if (Math.random() < chance) {
+    addEffects(fx, CAB_FX.approved);
+    return { outcome: "approved", label: "Approved by CAB", style: "good", fx,
+      comment: `${boardComment} ${person.reactions.approve}`, implement: true };
+  }
+  // Not approved: well-prepared RFCs get deferred for a small fix;
+  // poorly prepared ones are usually rejected outright.
+  if (h.assessment === "ready" || Math.random() < 0.4) {
+    addEffects(fx, CAB_FX.deferred);
+    return { outcome: "deferred", label: "Deferred by CAB", style: "warn", fx,
+      comment: `${boardComment} The board wants more information before deciding.`, implement: false };
+  }
+  addEffects(fx, CAB_FX.rejected);
+  return { outcome: "rejected", label: "Rejected by CAB", style: "warn", fx,
+    comment: `${boardComment} ${person.reactions.reject}`, implement: false };
+}
+
+// 3c. IMPLEMENTATION: what ACTUALLY happens to an approved change.
 //     This is where the HIDDEN true risk matters.
 
 // Base chance of an outage for each hidden risk level (0.10 = 10%).
@@ -313,14 +412,14 @@ function chanceOfOutage(rfc) {
   return Math.max(0.02, Math.min(0.95, chance)); // never 0% or 100%
 }
 
-// Every after-meeting result is a "report". style = colour on screen:
+// Every result on the results screen is a "report". style = colour:
 // "bad" (red), "warn" (yellow), "good" (green), "info" (grey).
 function makeReport(rfc, outcome, label, style, text, fx, extra = {}) {
   return { number: null, rfc, outcome, label, style, text: fillIn(text, rfc), fx, ...extra };
 }
 
-// Roll the dice for one approved RFC and build its incident report.
-function resolveApprovedChange(rfc) {
+// Roll the dice for one implemented RFC and build its incident report.
+function resolveImplementation(rfc) {
   const isOutage = Math.random() < chanceOfOutage(rfc);
 
   if (isOutage) {
@@ -334,70 +433,68 @@ function resolveApprovedChange(rfc) {
     rfc.successReport || genericReport("success", rfc), SUCCESS_FX);
 }
 
-// 3c. What happens to a REJECTED change after the meeting.
-const EMERGENCY_RETURN_CHANCE = 0.6;  // if the RFC has a returnsAsEmergency version
-const ESCALATION_CHANCE = { High: 0.7, Medium: 0.4, Low: 0.15 }; // by requester's clout
-
+// 3d. A change that DIDN'T go ahead (rejected by the board, or a ready
+//     change you sent back) can come back as an Emergency next week if
+//     the underlying problem gets worse.
 const NO_FX = { stability: 0, leadership: 0, audit: 0, sanity: 0 };
 const EMERGENCY_RETURN_FX = { stability: -6, leadership: -4, audit: 0, sanity: -3 };
-const ESCALATION_FX = { stability: 0, leadership: -8, audit: 0, sanity: -4 };
-const DODGED_FX = { stability: 2, leadership: 0, audit: 2, sanity: 2 };
 
-function resolveRejectedChange(rfc) {
+function makeEmergencyReturn(rfc, why) {
+  const { reason, ...changes } = rfc.returnsAsEmergency;
+  const emergency = {
+    ...rfc,
+    ...changes,
+    type: "Emergency",
+    id: baseId(rfc) + "-E",
+    baseId: baseId(rfc),
+    returnsAsEmergency: null, // it can't turn into an emergency twice
+    returnNote: `Back as an EMERGENCY. ${why}`,
+    returnStyle: "bad"
+  };
+  state.returning.push({ rfc: emergency, dueWeek: state.week + 1 });
+  // { ...X } makes a copy, so adding to this report's numbers later
+  // can't accidentally change the shared constant.
+  return makeReport(rfc, "emergency", "Problem got worse", "bad", reason, { ...EMERGENCY_RETURN_FX });
+}
+
+// What happens after the CAB rejects a change.
+const EMERGENCY_RETURN_CHANCE = 0.6;
+const ESCALATION_CHANCE = { High: 0.7, Medium: 0.4, Low: 0.15 }; // by requester's clout
+const ESCALATION_FX = { leadership: -5, sanity: -2 };
+const DODGED_FX = { stability: 2, audit: 2, sanity: 2 };
+
+function resolveCabRejection(rfc) {
   const person = CHARACTERS[rfc.requester];
-
-  // 1. The problem the change was meant to fix gets worse -> it comes
-  //    back at the very next meeting as an Emergency change.
   if (rfc.returnsAsEmergency && Math.random() < EMERGENCY_RETURN_CHANCE) {
-    const { reason, ...changes } = rfc.returnsAsEmergency;
-    const emergency = {
-      ...rfc,
-      ...changes,
-      type: "Emergency",
-      id: baseId(rfc) + "-E",
-      baseId: baseId(rfc),
-      returnsAsEmergency: null, // it can't turn into an emergency twice
-      returnNote: `Back as an EMERGENCY. You rejected this at ${currentDay()}'s CAB.`,
-      returnStyle: "bad"
-    };
-    state.returning.push({ rfc: emergency, dueMeeting: state.meetingNumber + 1 });
-    return makeReport(rfc, "emergency", "Problem got worse", "bad", reason, EMERGENCY_RETURN_FX);
+    return makeEmergencyReturn(rfc, "The CAB rejected this last week and the problem got worse.");
   }
-
-  // 2. The requester goes over your head.
   if (Math.random() < ESCALATION_CHANCE[person.clout]) {
-    return makeReport(rfc, "escalation", "Escalated to leadership", "warn",
+    return makeReport(rfc, "escalation", "Escalated over the CAB's head", "warn",
       rfc.rejectedReport || pickRandom(GENERIC_REPORTS.escalation), ESCALATION_FX);
   }
-
-  // 3. It really WAS dangerous, and you saw it. Small reward.
   if (rfc.hiddenRisk === "High") {
     return makeReport(rfc, "dodged", "Bullet dodged", "good",
       pickRandom(GENERIC_REPORTS.dodged), DODGED_FX);
   }
-
-  return null; // the requester accepted it quietly; no report
+  return null; // the requester accepted it quietly
 }
 
-// 3d. What happens to a SENT BACK change after the meeting.
+// 3e. SENT BACK (by you as "not ready", or deferred by the CAB).
+//     It returns next week, improved or not depending on the requester.
 const IMPROVE_CHANCE = { High: 0.9, Medium: 0.5, Low: 0.2 }; // by requester's followThrough
-const MAX_RESUBMISSIONS = 2;  // send it back a 3rd time and they give up
-const WITHDRAWN_FX = { stability: 0, leadership: -4, audit: 0, sanity: -2 };
+const MAX_RESUBMISSIONS = 2;  // sent back a 3rd time and they give up
+const WITHDRAWN_FX = { leadership: -4, sanity: -2 };
 
 // One step better: none -> partial -> yes, missing -> weak -> solid.
 const BETTER_TESTING = { none: "partial", partial: "yes", yes: "yes" };
 const BETTER_ROLLBACK = { missing: "weak", weak: "solid", solid: "solid" };
 
-function resolveSentBack(rfc) {
+// Queue the resubmitted copy for next week. Returns false if they gave up.
+function queueResubmission(rfc, whyBack) {
   const person = CHARACTERS[rfc.requester];
   const attempts = rfc.resubmissions || 0;
+  if (attempts >= MAX_RESUBMISSIONS) return false;
 
-  if (attempts >= MAX_RESUBMISSIONS) {
-    return makeReport(rfc, "withdrawn", "Withdrawn by requester", "warn",
-      pickRandom(RESUBMISSION_NOTES.withdrawn), WITHDRAWN_FX);
-  }
-
-  // Did they actually fix anything?
   let resubmitted = { ...rfc };
   let note;
   if (Math.random() < IMPROVE_CHANCE[person.followThrough]) {
@@ -415,34 +512,106 @@ function resolveSentBack(rfc) {
   resubmitted.resubmissions = attempts + 1;
   resubmitted.baseId = baseId(rfc);
   resubmitted.id = `${baseId(rfc)}-R${attempts + 1}`;
-  resubmitted.returnNote = `Resubmitted (attempt ${attempts + 2}). ${fillIn(note, rfc)}`;
+  resubmitted.returnNote = `Resubmitted (attempt ${attempts + 2}). ${whyBack} ${fillIn(note, rfc)}`;
   resubmitted.returnStyle = "info";
-
-  // Back in 1 or 2 meetings' time.
-  const delay = 1 + Math.floor(Math.random() * 2);
-  state.returning.push({ rfc: resubmitted, dueMeeting: state.meetingNumber + delay });
-
-  return makeReport(rfc, "resubmit", "Sent back for more info", "info",
-    "{name} will resubmit it at a later CAB.", NO_FX);
+  state.returning.push({ rfc: resubmitted, dueWeek: state.week + 1 });
+  return true;
 }
 
-// 3d-2. What happens to a change placed ON HOLD during a freeze: it waits,
-//       unchanged, and returns at the first meeting without a freeze.
-function resolveHold(rfc) {
-  const held = {
+// What sending an RFC back says about YOUR judgement.
+const SENDBACK_FX = {
+  emergency: { stability: -5, leadership: -4 },  // emergencies can't wait for paperwork
+  ready: { leadership: -4, sanity: -1 },         // it was fine: pointless delay
+  borderline: { leadership: -1, audit: 1 },      // fair enough
+  notReady: { audit: 2, sanity: 1 }              // good catch
+};
+const HIGH_CLOUT_EXTRA_FX = { leadership: -3 };  // annoying the Colonel's office costs more
+const BROKEN_PROMISE_FX = { leadership: -4, sanity: -2 };
+const DELAY_EMERGENCY_CHANCE = 0.5;              // ready change sent back -> problem may get worse
+
+function resolveSendBack(h) {
+  const rfc = h.rfc;
+  const fx = {};
+  if (state.promise) addEffects(fx, BROKEN_PROMISE_FX);
+
+  if ((rfc.resubmissions || 0) >= MAX_RESUBMISSIONS) {
+    addEffects(fx, WITHDRAWN_FX);
+    return makeReport(rfc, "withdrawn", "Withdrawn by requester", "warn",
+      pickRandom(RESUBMISSION_NOTES.withdrawn), fx);
+  }
+
+  if (rfc.type === "Emergency") {
+    addEffects(fx, SENDBACK_FX.emergency);
+    queueResubmission(rfc, "You sent this emergency back last week.");
+    return makeReport(rfc, "resubmit", "Emergency delayed", "bad",
+      "The emergency didn't wait for paperwork. {system} stayed broken another week while {name} filled in forms.", fx);
+  }
+
+  if (h.assessment === "ready") {
+    addEffects(fx, SENDBACK_FX.ready);
+    if (CHARACTERS[rfc.requester].clout === "High") addEffects(fx, HIGH_CLOUT_EXTRA_FX);
+    // While it waited, the problem it was fixing might have got worse.
+    if (rfc.returnsAsEmergency && Math.random() < DELAY_EMERGENCY_CHANCE) {
+      const report = makeEmergencyReturn(rfc, "You sent it back last week, and the problem got worse while it waited.");
+      addEffects(report.fx, fx);
+      return report;
+    }
+    queueResubmission(rfc, "You sent it back last week.");
+    return makeReport(rfc, "resubmit", "Sent back, but it was ready", "warn",
+      "{name} points out, correctly, that the RFC had a rollback plan, test evidence and everything the board asks for.", fx);
+  }
+
+  if (h.assessment === "borderline") {
+    addEffects(fx, SENDBACK_FX.borderline);
+    queueResubmission(rfc, "You sent it back last week for more detail.");
+    return makeReport(rfc, "resubmit", "Sent back for more detail", "info",
+      "A fair call either way. {name} will tighten it up and resubmit.", fx);
+  }
+
+  addEffects(fx, SENDBACK_FX.notReady);
+  queueResubmission(rfc, "You sent it back last week as not ready.");
+  const why = rfc.type === "Standard"
+    ? "It didn't meet its catalogue entry, so it isn't really a standard change. Good catch."
+    : "It wasn't ready for the board. Good catch.";
+  return makeReport(rfc, "resubmit", "Not ready: good catch", "good", why, fx);
+}
+
+// Requester's change came back from the board deferred.
+function resolveDeferral(rfc) {
+  if (!queueResubmission(rfc, "The CAB deferred it last week.")) {
+    return makeReport(rfc, "withdrawn", "Withdrawn by requester", "warn",
+      pickRandom(RESUBMISSION_NOTES.withdrawn), WITHDRAWN_FX);
+  }
+  return null;
+}
+
+// 3f. ON HOLD during a freeze: it waits, unchanged, and returns in the
+//     first week without a freeze.
+const HOLD_FX = { leadership: -1, audit: 2 };
+const HOLD_EMERGENCY_FX = { stability: -4, leadership: -3 };
+
+function placeOnHold(rfc, why) {
+  state.onHold.push({
     ...rfc,
     baseId: baseId(rfc),
-    returnNote: `Released from hold. Placed on hold during the change freeze at ${currentDay()}'s CAB (Week ${state.week}).`,
+    returnNote: `Released from hold. ${why}`,
     returnStyle: "info"
-  };
-  state.onHold.push(held);
-  return makeReport(rfc, "held", "On hold", "info",
-    "{name}'s change is parked until the freeze lifts. It will return automatically.", NO_FX);
+  });
 }
 
-// 3e. COLLISIONS. Everything approved at one meeting goes into the
-//     same change window afterwards. Two approved changes that touch
-//     the same system might trip over each other.
+function resolveHold(h) {
+  const rfc = h.rfc;
+  placeOnHold(rfc, `Placed on hold during the Week ${state.week} change freeze.`);
+  if (rfc.type === "Emergency") {
+    return makeReport(rfc, "held", "Emergency put on hold", "bad",
+      "Emergency changes are allowed through a freeze. Holding this one means {system} stays broken.", HOLD_EMERGENCY_FX);
+  }
+  return makeReport(rfc, "held", "On hold", "info",
+    "{name}'s change is parked until the freeze lifts. It will return automatically.", HOLD_FX);
+}
+
+// 3g. COLLISIONS. Everything implemented this week goes into the same
+//     change window. Two changes touching the same system might clash.
 const COLLISION_CHANCE = 0.4;  // per pair of changes sharing a system
 const COLLISION_FX = { stability: -8, leadership: -4, audit: -3, sanity: -4 };
 
@@ -451,15 +620,15 @@ function sharedSystems(a, b) {
   return a.systems.filter(system => b.systems.includes(system));
 }
 
-// approvedEntries = this meeting's history entries that were approved.
-function resolveCollisions(approvedEntries) {
+// entries = this week's history entries that were implemented.
+function resolveCollisions(entries) {
   const reports = [];
 
   // Check every PAIR once: (1st, 2nd), (1st, 3rd), (2nd, 3rd), ...
-  for (let i = 0; i < approvedEntries.length; i++) {
-    for (let j = i + 1; j < approvedEntries.length; j++) {
-      const a = approvedEntries[i].rfc;
-      const b = approvedEntries[j].rfc;
+  for (let i = 0; i < entries.length; i++) {
+    for (let j = i + 1; j < entries.length; j++) {
+      const a = entries[i].rfc;
+      const b = entries[j].rfc;
       const shared = sharedSystems(a, b);
       if (shared.length === 0 || Math.random() >= COLLISION_CHANCE) continue;
 
@@ -473,11 +642,10 @@ function resolveCollisions(approvedEntries) {
         number: "INC" + state.nextIncidentNumber++,
         duration: "2 hours",
         systemsHit: shared,
-        source: `Caused by ${a.id} + ${b.id} clashing in the same change window`
+        source: `Caused by ${a.id} + ${b.id} going in during the same change window`
       });
       // Remember the collision on the later change's history entry.
-      // (A list, because one change can clash with several others.)
-      approvedEntries[j].collisions = (approvedEntries[j].collisions || []).concat(report);
+      entries[j].collisions = (entries[j].collisions || []).concat(report);
       reports.push(report);
     }
   }
@@ -486,48 +654,55 @@ function resolveCollisions(approvedEntries) {
 
 // Outages = changes that broke + collisions.
 function countOutages(entries) {
-  const brokenChanges = entries.filter(h => h.report && h.report.outcome === "outage").length;
+  const broken = entries.filter(h => h.implementation && h.implementation.outcome === "outage").length;
   const collisions = entries.reduce((total, h) => total + (h.collisions ? h.collisions.length : 0), 0);
-  return brokenChanges + collisions;
+  return broken + collisions;
 }
 
-// 3f. End-of-week performance rating. Checked top to bottom: the
+function triageAccuracy(entries) {
+  if (entries.length === 0) return 1;
+  return entries.filter(wasGoodCall).length / entries.length;
+}
+
+// 3h. End-of-week performance rating. Checked top to bottom: the
 //     first rule that matches wins. Titles and jokes live in data.js.
 function getPerformanceRating(entries) {
-  const total = entries.length;
+  const total = entries.length || 1;
   const count = d => entries.filter(h => h.decision === d).length;
-  const approveRate = count("approve") / total;
-  const rejectRate = count("reject") / total;
   const sendBackRate = count("sendBack") / total;
+  const readyRate = count("ready") / total;
+  const junkForwarded = entries.filter(h => h.decision === "ready" && h.assessment === "notReady").length;
   const outages = countOutages(entries);
+  const accuracy = triageAccuracy(entries);
 
   if (outages >= 3) return PERFORMANCE_RATINGS.incidentFactory;
-  if (rejectRate >= 0.6) return PERFORMANCE_RATINGS.wallOfNo;
-  if (sendBackRate >= 0.5) return PERFORMANCE_RATINGS.needsMoreInfo;
-  if (approveRate >= 0.8 && outages >= 1) return PERFORMANCE_RATINGS.rubberStamp;
-  if (outages === 0 && approveRate >= 0.4) return PERFORMANCE_RATINGS.actuallyGood;
-  if (outages === 0) return PERFORMANCE_RATINGS.cautious;
+  if (sendBackRate >= 0.7) return PERFORMANCE_RATINGS.wallOfNo;
+  if (readyRate >= 0.85 && junkForwarded >= 2) return PERFORMANCE_RATINGS.rubberStamp;
+  if (accuracy >= 0.85 && outages <= 1) return PERFORMANCE_RATINGS.actuallyGood;
+  if (accuracy >= 0.65) return PERFORMANCE_RATINGS.cautious;
   return PERFORMANCE_RATINGS.mediocre;
 }
 
-// 3g. RANDOM EVENTS between meetings. The events themselves (text and
+// 3i. RANDOM EVENTS between weeks. The events themselves (text and
 //     choices) live in data.js; the special rules live here.
-const EVENT_CHANCE = 0.5;  // chance of an event before each meeting
-const FREEZE_VIOLATION_FX = { leadership: -10, audit: -4 }; // outweighs the +6 for approving
-const BROKEN_PROMISE_FX = { leadership: -4, sanity: -2 };
+const EVENT_CHANCE = 0.6;  // chance of an event before each week
 const AUDIT_PENALTY_PER_FINDING = 5;
 const AUDIT_MAX_PENALTY = 25;
 const CLEAN_AUDIT_FX = { leadership: 2, audit: 10, sanity: 3 };
 
-// What would auditors find, looking at everything since their last visit?
+// What would the inspectors find, looking at everything since their last visit?
 function auditFindings() {
   const findings = [];
   state.history
-    .filter(h => h.meeting > state.lastAuditMeeting && h.decision === "approve")
+    .filter(h => h.week > state.lastAuditWeek && h.decision === "ready")
     .forEach(h => {
-      if (h.rfc.rollback === "missing") findings.push(`${h.rfc.id} was approved with no rollback plan`);
-      if (h.rfc.testing === "none") findings.push(`${h.rfc.id} was approved with no testing evidence`);
-      if (h.freezeViolation) findings.push(`${h.rfc.id} was approved during a change freeze`);
+      if (h.freezeViolation) findings.push(`${h.rfc.id} was sent to CAB during a change freeze`);
+      if (!h.implementation) return;
+      if (h.cabOutcome === "standard" && h.assessment === "notReady") {
+        findings.push(`${h.rfc.id} was logged as a standard change but didn't meet its catalogue entry`);
+      }
+      if (h.rfc.rollback === "missing") findings.push(`${h.rfc.id} was implemented with no rollback plan`);
+      if (h.rfc.testing === "none") findings.push(`${h.rfc.id} was implemented with no testing evidence`);
     });
   return findings.concat(state.auditFlags);
 }
@@ -544,8 +719,8 @@ function addEffects(target, more) {
   for (const m in more) target[m] = (target[m] || 0) + more[m];
 }
 
-// The player picked a choice: work out its effects, switch on any
-// lasting rule, and return what to show on screen.
+// The player picked an event choice: work out its effects, switch on
+// any lasting rule, and return what to show on screen.
 function applyEventChoice(choice) {
   const fx = { stability: 0, leadership: 0, audit: 0, sanity: 0 };
   addEffects(fx, choice.fx || {});
@@ -562,8 +737,8 @@ function applyEventChoice(choice) {
       fx.sanity -= 2;
       text = choice.findingsResult;
     }
-    // The slate is wiped clean after an honest audit.
-    state.lastAuditMeeting = state.meetingNumber;
+    // The slate is wiped clean after an honest inspection.
+    state.lastAuditWeek = state.week - 1;
     state.auditFlags = [];
   }
   if (choice.effect === "freeze") state.freeze = true;
@@ -641,29 +816,30 @@ function renderMeters(fx = {}) {
   });
 }
 
-// The scene-setting screen before each meeting.
-function renderMeetingIntro(extraNote = "") {
-  document.getElementById("intro-title").textContent =
-    `Week ${state.week} · ${currentDay()} CAB, 10:00`;
-  document.getElementById("intro-text").textContent = pickRandom(MEETING_INTROS);
+// The screen at the start of each week.
+function renderWeekIntro(extraNote = "") {
+  document.getElementById("intro-title").textContent = `Week ${state.week} · Change review`;
+  document.getElementById("intro-text").textContent =
+    `Your queue has new requests for change. Review each one and decide whether it's ready ` +
+    `for ${CAB_DAY}'s CAB.`;
   document.getElementById("intro-note").textContent = extraNote;
 
   // Remind the player about any rules from random events.
   const alerts = [];
-  if (state.freeze) alerts.push("❄ Change freeze in effect: approve only Emergency changes. Place everything else ON HOLD.");
+  if (state.freeze) alerts.push("❄ Change freeze this week: only Emergency changes may go to the CAB. Place everything else ON HOLD.");
   if (state.onHold.length > 0) {
     const n = state.onHold.length;
     const what = n === 1 ? "1 change is" : `${n} changes are`;
     alerts.push(state.freeze
       ? `${what} still on hold, waiting for the freeze to lift.`
-      : `The freeze has lifted: ${what} coming off hold at this meeting.`);
+      : `The freeze has lifted: ${what} coming off hold this week.`);
   }
-  if (state.promise) alerts.push("You promised leadership you'd be 'flexible'. Rejecting or sending back will cost extra.");
+  if (state.promise) alerts.push("You promised the Colonel's office to send everything to CAB. Sending RFCs back will cost extra.");
   document.getElementById("intro-alert").textContent = alerts.join(" ");
   // The "how to play" text only needs showing at the very start.
-  const isFirstMeeting = state.week === 1 && state.meetingIndex === 0;
-  document.getElementById("intro-rules").classList.toggle("hidden", !isFirstMeeting);
-  document.getElementById("intro-tip").classList.toggle("hidden", !isFirstMeeting);
+  const isFirstWeek = state.week === 1;
+  document.getElementById("intro-rules").classList.toggle("hidden", !isFirstWeek);
+  document.getElementById("intro-tip").classList.toggle("hidden", !isFirstWeek);
 }
 
 // Pick a colour for a field value: green = good, yellow = meh, red = bad.
@@ -675,12 +851,11 @@ const ROLLBACK_COLOURS = { solid: "good", weak: "warn", missing: "bad" };
 const TESTING_COLOURS = { yes: "good", partial: "warn", none: "bad" };
 const TYPE_COLOURS = { Standard: "good", Normal: "info", Emergency: "bad" };
 
-// Build the RFC card's HTML from one RFC object in data.js.
 // A coloured circle with the character's initials, e.g. "ER" for
 // "Capt. Elena Reyes" (the last two words, so ranks are skipped).
 // Each character gets a fixed colour based on their position in data.js.
 const AVATAR_COLOURS = ["#2f5fa7", "#2f8f4e", "#a2452f", "#7a4fb0", "#b97f0f",
-  "#1f8a8a", "#b0457a", "#4a6b2f", "#5a5fc0", "#8a5a2f", "#3d7cb0"];
+  "#1f8a8a", "#b0457a", "#4a6b2f", "#5a5fc0", "#8a5a2f", "#3d7cb0", "#6b5a8a"];
 
 function renderAvatar(characterKey) {
   const initials = CHARACTERS[characterKey].name
@@ -690,11 +865,19 @@ function renderAvatar(characterKey) {
   return `<span class="avatar" style="background:${colour}" aria-hidden="true">${initials}</span>`;
 }
 
+// The "Ready" button's wording depends on where the change would go.
+function readyButtonLabel(rfc) {
+  if (rfc.type === "Standard") return "Ready: log as Standard (no CAB)";
+  if (rfc.type === "Emergency") return "Ready: send to Emergency CAB";
+  return "Ready for CAB";
+}
+
+// Build the RFC card's HTML from one RFC object.
 function renderCard(rfc) {
   const person = CHARACTERS[rfc.requester];
 
   document.getElementById("progress").textContent =
-    `Week ${state.week} · ${currentDay()} CAB · RFC ${state.currentIndex + 1} of ${state.agenda.length}`;
+    `Week ${state.week} · Change review · RFC ${state.currentIndex + 1} of ${state.queue.length}`;
 
   // Returning RFCs get a banner explaining why they're back.
   const banner = rfc.returnNote
@@ -704,10 +887,10 @@ function renderCard(rfc) {
   // Reminders from random events (freeze, promise).
   let status = "";
   if (state.freeze) {
-    status += `<p class="status-banner">&#10052; CHANGE FREEZE: approving anything except an Emergency change breaks the freeze. Use <strong>Place on Hold</strong> instead.</p>`;
+    status += `<p class="status-banner">&#10052; CHANGE FREEZE: only Emergency changes may go to this week's CAB. Use <strong>Place on Hold</strong> for everything else.</p>`;
   }
   if (state.promise) {
-    status += `<p class="status-banner">&#128222; You promised to be 'flexible'. Rejecting or sending back will cost you.</p>`;
+    status += `<p class="status-banner">&#128222; You promised to send everything to CAB. Sending RFCs back will cost you.</p>`;
   }
 
   const card = document.getElementById("rfc-card");
@@ -738,6 +921,7 @@ function renderCard(rfc) {
   // Reset the buttons and reaction text for the new card.
   document.getElementById("reaction").textContent = "";
   setDecisionButtonsEnabled(true);
+  document.querySelector('[data-decision="ready"] .label').textContent = readyButtonLabel(rfc);
   // "Place on Hold" only exists while a change freeze is in effect.
   document.querySelector('[data-decision="hold"]').classList.toggle("hidden", !state.freeze);
   document.getElementById("hold-hint").classList.toggle("hidden", !state.freeze);
@@ -745,26 +929,26 @@ function renderCard(rfc) {
 }
 
 // "Change schedule" check: warn if this RFC touches the same system as
-// something already approved at this meeting, or later on the agenda.
+// something already marked ready this week, or later in the queue.
 function renderScheduleWarning(rfc) {
   const describe = other => `${other.id} (${sharedSystems(rfc, other).join(", ")})`;
 
-  const approvedClashes = decisionsThisMeeting()
-    .filter(h => h.decision === "approve" && sharedSystems(rfc, h.rfc).length > 0)
+  const readyClashes = decisionsThisWeek()
+    .filter(h => h.decision === "ready" && sharedSystems(rfc, h.rfc).length > 0)
     .map(h => describe(h.rfc));
-  const laterClashes = state.agenda.slice(state.currentIndex + 1)
+  const laterClashes = state.queue.slice(state.currentIndex + 1)
     .filter(other => sharedSystems(rfc, other).length > 0)
     .map(describe);
 
-  if (approvedClashes.length === 0 && laterClashes.length === 0) return "";
+  if (readyClashes.length === 0 && laterClashes.length === 0) return "";
 
   let lines = "";
-  if (approvedClashes.length > 0) {
-    lines += `<p><strong>&#9888; Schedule conflict:</strong> already approved for the same change ` +
-      `window: ${approvedClashes.join(", ")}.</p>`;
+  if (readyClashes.length > 0) {
+    lines += `<p><strong>&#9888; Schedule conflict:</strong> already marked ready for this week's ` +
+      `change window: ${readyClashes.join(", ")}.</p>`;
   }
   if (laterClashes.length > 0) {
-    lines += `<p><strong>&#9888; Heads up:</strong> later on this agenda, touching the same ` +
+    lines += `<p><strong>&#9888; Heads up:</strong> later in your queue, touching the same ` +
       `systems: ${laterClashes.join(", ")}.</p>`;
   }
   return `<div class="schedule-warning">${lines}</div>`;
@@ -788,7 +972,7 @@ function describeEffects(fx) {
     .join(", ");
 }
 
-// Build one incident report "ticket" for the consequences screen.
+// Build one report "ticket" for the results screen.
 function renderReport(report) {
   // Incidents (outages, collisions) have an INC number; other reports don't.
   const systems = (report.systemsHit || report.rfc.systems).join(", ");
@@ -810,59 +994,73 @@ function renderReport(report) {
   `;
 }
 
-function renderConsequences(reports, totalFx) {
-  const outages = reports.filter(r => r.outcome === "outage" || r.outcome === "collision").length;
-  const implemented = reports.filter(r => r.outcome === "outage" || r.outcome === "success").length;
+// The results screen: CAB minutes, then implementation, then the
+// changes that went back to their requesters.
+function renderResults(sections, totalFx) {
+  const outages = sections.implementation.filter(r => r.outcome === "outage" || r.outcome === "collision").length;
+  const implemented = sections.implementation.filter(r => r.outcome === "outage" || r.outcome === "success").length;
 
-  let intro;
-  if (reports.length === 0) {
-    intro = "You approved nothing. Nothing broke. Nothing improved. The business is unsure what you're for.";
+  let summary;
+  if (sections.cab.length === 0) {
+    summary = "You sent nothing to the CAB. The board met for four minutes and went to lunch.";
   } else if (implemented === 0) {
-    intro = "Nothing was approved, so nothing was implemented. But your decisions still had consequences.";
+    summary = "Nothing was implemented this week.";
   } else if (outages === 0) {
-    intro = "A quiet night. Every approved change went in cleanly.";
+    summary = `${implemented} change${implemented > 1 ? "s" : ""} implemented. A quiet change window: everything went in cleanly.`;
   } else {
-    intro = `The change window after ${currentDay()}'s CAB produced ${outages} incident${outages > 1 ? "s" : ""}.`;
+    summary = `${implemented} change${implemented > 1 ? "s" : ""} implemented, causing ${outages} incident${outages > 1 ? "s" : ""}.`;
   }
 
-  document.getElementById("consequences-title").textContent =
-    `After ${currentDay()}'s CAB: results`;
-  document.getElementById("reports").innerHTML =
-    `<p>${intro}</p>` + reports.map(renderReport).join("");
+  const section = (title, reports, empty) => `
+    <h3 class="results-heading">${title}</h3>
+    ${reports.length ? reports.map(renderReport).join("") : `<p class="results-empty">${empty}</p>`}
+  `;
+
+  document.getElementById("consequences-title").textContent = `Week ${state.week} · ${CAB_DAY} CAB results`;
+  document.getElementById("reports").innerHTML = `
+    <p class="cab-scene">${CAB_DAY}, 1000. ${pickRandom(MEETING_INTROS)}</p>
+    <p><strong>${summary}</strong></p>
+    ${section("CAB minutes", sections.cab, "Nothing on the agenda.")}
+    ${section("Implementation", sections.implementation, "Nothing was implemented.")}
+    ${section("Back with the requesters", sections.requesters, "Nothing was sent back.")}
+  `;
   renderMeters(totalFx);
 
-  // What does the "continue" button lead to?
   const button = document.getElementById("btn-continue");
-  const isLastMeetingOfWeek = state.meetingIndex === MEETING_DAYS.length - 1;
-  if (isGameOver()) button.textContent = "Oh no";
-  else if (isLastMeetingOfWeek) button.textContent = "See week summary";
-  else button.textContent = `On to ${MEETING_DAYS[state.meetingIndex + 1]}'s CAB`;
+  button.textContent = isGameOver() ? "Oh no" : "See week summary";
 }
 
-const DECISION_LABELS = { approve: "Approved", reject: "Rejected", sendBack: "Sent back", hold: "On hold" };
+const DECISION_LABELS = { ready: "Sent to CAB", sendBack: "Sent back", hold: "On hold" };
+const STAMP_LABELS = { ready: "To CAB", sendBack: "Not ready", hold: "On hold" };
 
 // Shared by the week summary and game over screen: stats + decision list.
 function renderStats(entries) {
   const count = d => entries.filter(h => h.decision === d).length;
   const outages = countOutages(entries);
+  const approved = entries.filter(h => h.implementation).length;
+  const accuracy = Math.round(100 * triageAccuracy(entries));
 
   const items = entries.map(h => {
-    const showResult = h.report && h.report.outcome !== "resubmit" && h.report.outcome !== "held";
-    let result = showResult ? ` (${h.report.label.toLowerCase()})` : "";
+    let result = "";
+    if (h.cabLabel) result += ` → ${h.cabLabel.toLowerCase()}`;
+    if (h.implementation) result += ` (${h.implementation.label.toLowerCase()})`;
     if (h.collisions) result += h.collisions.length === 1 ? " + collision" : ` + ${h.collisions.length} collisions`;
-    return `<li><span class="when">${h.day.slice(0, 3)}</span> <strong>${h.rfc.id}</strong> ` +
+    const mark = wasGoodCall(h) ? `<span class="call good">&#10003;</span>` : `<span class="call bad">&#10007;</span>`;
+    return `<li>${mark} <span class="when">Wk ${h.week}</span> <strong>${h.rfc.id}</strong> ` +
       `${h.rfc.title}: ${DECISION_LABELS[h.decision]}${result}</li>`;
   }).join("");
 
   return `
     <div class="stats">
-      <div><span class="stat-number">${entries.length}</span>changes processed</div>
-      <div><span class="stat-number">${count("approve")}</span>approved</div>
-      <div><span class="stat-number">${count("reject")}</span>rejected</div>
+      <div><span class="stat-number">${entries.length}</span>changes reviewed</div>
+      <div><span class="stat-number">${count("ready")}</span>sent forward</div>
+      <div><span class="stat-number">${approved}</span>implemented</div>
       <div><span class="stat-number">${count("sendBack")}</span>sent back</div>
       <div><span class="stat-number">${count("hold")}</span>on hold</div>
       <div><span class="stat-number ${outages ? "bad" : ""}">${outages}</span>outage${outages === 1 ? "" : "s"} caused</div>
+      <div><span class="stat-number ${accuracy < 65 ? "bad" : ""}">${accuracy}%</span>triage accuracy</div>
     </div>
+    <p class="stats-key">&#10003; = a good readiness call, &#10007; = a questionable one.</p>
     <ul class="decision-list">${items}</ul>
   `;
 }
@@ -890,145 +1088,137 @@ function renderGameOver() {
   document.getElementById("end-title").textContent = "GAME OVER";
   document.getElementById("end-summary").innerHTML = `
     <p>${GAME_OVER_MESSAGES[deadMeter]}</p>
-    <p>You chaired the CAB for <strong>${weeks}</strong>, until ${currentDay()}.
-       Your whole career:</p>
+    <p>You served as Change Manager for <strong>${weeks}</strong>. Your whole career:</p>
     ${renderStats(state.history)}
   `;
 }
 
 const GAME_OVER_MESSAGES = {
   stability: "The network is down. The installation is running on runners, radios and handwritten notes. The Colonel would like a word.",
-  leadership: "The Colonel has relieved you as CAB chair. Your replacement is SSG Kowalski. Pray for the network.",
+  leadership: "The Colonel has replaced you as Change Manager. Your replacement is SSG Kowalski. Pray for the network.",
   audit: "The inspection team found your change records. All of them. You are now a slide in the Inspector General's annual training.",
-  sanity: "You have submitted an RFC titled 'Retire to a remote site with no network'. It was approved unanimously."
+  sanity: "You have submitted an RFC titled 'Retire to a remote site with no network'. You marked it ready. The CAB approved it unanimously."
 };
 
 // ---------------------------------------------------------------------
-// 5. EVENTS - what happens when the player clicks things.
-//    The flow is:  intro -> meeting -> results -> (next meeting's intro
-//    OR week summary -> next week's intro)  ...until a meter hits 0.
+// 5. FLOW - what happens when the player clicks things.
+//    intro -> review queue -> CAB results -> week summary
+//          -> (maybe a random event) -> next week's intro ...
 // ---------------------------------------------------------------------
 function newGame() {
   resetGame();
   renderMeters();
-  renderMeetingIntro();
+  renderWeekIntro();
   showScreen("screen-intro");
 }
 
-function startMeeting() {
-  state.meetingNumber++;
-  state.agenda = drawAgenda();
+function startReview() {
+  state.queue = drawQueue();
   state.currentIndex = 0;
   renderMeters();
   showScreen("screen-meeting");
-  renderCard(state.agenda[0]);
+  renderCard(state.queue[0]);
 }
 
 function makeDecision(decision) {
-  const rfc = state.agenda[state.currentIndex];
-  const fx = getDecisionEffects(rfc, decision);
+  const rfc = state.queue[state.currentIndex];
   const person = CHARACTERS[rfc.requester];
-  // reactions.hold is optional in data.js, so have a fallback.
-  const reactions = [person.reactions[decision] ||
-    `${shortNameOf(rfc.requester)}'s change is parked until the freeze lifts.`];
-  if (decision === "hold" && rfc.type === "Emergency") {
-    reactions.push("Emergency changes are allowed through a freeze. Holding this one means the problem keeps getting worse.");
-  }
+  const assessment = assessReadiness(rfc);
 
-  // Change freeze: approving anything but an Emergency breaks it.
-  const breaksFreeze = state.freeze && decision === "approve" && rfc.type !== "Emergency";
-  if (breaksFreeze) {
-    addEffects(fx, FREEZE_VIOLATION_FX);
-    reactions.push("You approved a non-Emergency change during a freeze. Leadership noticed.");
-  }
-  // Promised to be "flexible", then said no.
-  if (state.promise && (decision === "reject" || decision === "sendBack")) {
-    addEffects(fx, BROKEN_PROMISE_FX);
-    reactions.push("So much for being 'flexible'. Your phone is already ringing.");
-  }
-
-  applyEffects(fx);
+  // No meters move yet: the consequences arrive at the CAB.
   state.history.push({
-    week: state.week, day: currentDay(), meeting: state.meetingNumber,
-    rfc, decision, report: null, freezeViolation: breaksFreeze
+    week: state.week, rfc, decision, assessment,
+    freezeViolation: decision === "ready" && state.freeze && rfc.type !== "Emergency"
   });
-  renderMeters(fx);
 
-  // Show the requester's reaction and stop more clicks on this card.
-  document.getElementById("reaction").textContent = reactions.join(" ");
+  // The requester's reaction (they find out straight away if it's sent back).
+  let reaction;
+  if (decision === "sendBack") reaction = person.reactions.sendBack;
+  else if (decision === "hold") reaction = person.reactions.hold || `${shortNameOf(rfc.requester)}'s change is parked until the freeze lifts.`;
+  else if (rfc.type === "Standard") reaction = "Logged as a pre-authorized standard change. It won't go to the board.";
+  else if (rfc.type === "Emergency") reaction = "Sent to the Emergency CAB. They'll convene by phone today.";
+  else reaction = `Added to ${CAB_DAY}'s CAB agenda.`;
+  document.getElementById("reaction").textContent = reaction;
   setDecisionButtonsEnabled(false);
 
   // Thump a rubber stamp onto the card.
   const stamp = document.createElement("div");
   stamp.className = `stamp ${decision}`;
-  stamp.textContent = DECISION_LABELS[decision];
+  stamp.textContent = decision === "ready" && rfc.type === "Standard" ? "Standard"
+    : decision === "ready" && rfc.type === "Emergency" ? "To ECAB"
+    : STAMP_LABELS[decision];
   document.getElementById("rfc-card").appendChild(stamp);
 
-  if (isGameOver()) {
-    renderGameOver();
-    // Short pause so the player sees the meter drop before game over.
-    setTimeout(() => showScreen("screen-end"), 1200);
-    return;
-  }
-
-  const isLastCard = state.currentIndex === state.agenda.length - 1;
+  const isLastCard = state.currentIndex === state.queue.length - 1;
   const nextButton = document.getElementById("btn-next");
-  nextButton.textContent = isLastCard ? "End meeting" : "Next RFC";
+  nextButton.textContent = isLastCard ? `Send the agenda to ${CAB_DAY}'s CAB` : "Next RFC";
   nextButton.classList.remove("hidden");
 }
 
 function nextCard() {
   state.currentIndex++;
-  if (state.currentIndex >= state.agenda.length) {
-    endMeeting();
+  if (state.currentIndex >= state.queue.length) {
+    holdCab();
   } else {
-    renderMeters();
-    renderCard(state.agenda[state.currentIndex]);
+    renderCard(state.queue[state.currentIndex]);
   }
 }
 
-// The meeting is over: work out what happens with every decision.
-function endMeeting() {
-  const totalFx = { stability: 0, leadership: 0, audit: 0, sanity: 0 };
-  const reports = [];
+// The CAB meets: vote on everything you sent, implement what's approved,
+// and deal with everything you sent back or held.
+function holdCab() {
+  const sections = { cab: [], implementation: [], requesters: [] };
+  const implemented = [];
 
-  decisionsThisMeeting().forEach(h => {
-    if (h.decision === "approve") h.report = resolveApprovedChange(h.rfc);
-    if (h.decision === "reject") h.report = resolveRejectedChange(h.rfc);
-    if (h.decision === "sendBack") h.report = resolveSentBack(h.rfc);
-    if (h.decision === "hold") h.report = resolveHold(h.rfc);
-    if (!h.report) return; // nothing to report
+  decisionsThisWeek().forEach(h => {
+    if (h.decision === "ready") {
+      const vote = cabVote(h);
+      h.cabOutcome = vote.outcome;
+      h.cabLabel = vote.label;
+      sections.cab.push(makeReport(h.rfc, "cab", vote.label, vote.style, vote.comment, vote.fx));
 
-    reports.push(h.report);
+      if (vote.implement) {
+        h.implementation = resolveImplementation(h.rfc);
+        sections.implementation.push(h.implementation);
+        implemented.push(h);
+      } else if (vote.outcome === "pulled") {
+        placeOnHold(h.rfc, `Pulled from the CAB agenda during the Week ${state.week} change freeze.`);
+      } else if (vote.outcome === "rejected") {
+        const after = resolveCabRejection(h.rfc);
+        if (after) sections.requesters.push(after);
+      } else if (vote.outcome === "deferred") {
+        const after = resolveDeferral(h.rfc);
+        if (after) sections.requesters.push(after);
+      }
+    }
+    if (h.decision === "sendBack") sections.requesters.push(resolveSendBack(h));
+    if (h.decision === "hold") sections.requesters.push(resolveHold(h));
   });
 
-  // Then check whether any approved changes clashed with each other.
-  const approved = decisionsThisMeeting().filter(h => h.decision === "approve");
-  reports.push(...resolveCollisions(approved));
+  // Did any of this week's implemented changes clash with each other?
+  sections.implementation.push(...resolveCollisions(implemented));
 
   // Apply every report's meter changes.
-  reports.forEach(report => {
+  const totalFx = { stability: 0, leadership: 0, audit: 0, sanity: 0 };
+  [...sections.cab, ...sections.implementation, ...sections.requesters].forEach(report => {
     applyEffects(report.fx);
     for (const m in report.fx) totalFx[m] += report.fx[m];
   });
 
-  // Freezes and promises only last for one meeting.
+  // Freezes and promises only last for one week.
   state.freeze = false;
   state.promise = false;
 
-  renderConsequences(reports, totalFx);
+  renderResults(sections, totalFx);
   showScreen("screen-consequences");
 }
 
-// After reading the incident reports: game over, next meeting, or week summary.
-function afterConsequences() {
+// After reading the results: game over, or the week summary.
+function afterResults() {
   renderMeters();
   if (isGameOver()) {
     renderGameOver();
     showScreen("screen-end");
-  } else if (state.meetingIndex < MEETING_DAYS.length - 1) {
-    state.meetingIndex++;
-    goToNextMeeting();
   } else {
     renderWeekSummary();
     showScreen("screen-week");
@@ -1037,24 +1227,26 @@ function afterConsequences() {
 
 function startNextWeek() {
   state.week++;
-  state.meetingIndex = 0;
-  applyEffects({ sanity: WEEKEND_SANITY_BONUS });
-  renderMeters({ sanity: WEEKEND_SANITY_BONUS });
-  goToNextMeeting(`The weekend restored a little sanity (+${WEEKEND_SANITY_BONUS}).`);
-}
-
-// Before each meeting there's a chance of a random event first.
-function goToNextMeeting(note = "") {
-  state.pendingNote = note;
-  if (Math.random() < EVENT_CHANCE) {
-    startEvent();
-  } else {
-    showMeetingIntro();
+  // The weekend helps a bit; the ops tempo grinds everything down a bit.
+  const pressure = weeklyPressure(state.week);
+  const fx = { sanity: WEEKEND_SANITY_BONUS };
+  addEffects(fx, pressure);
+  applyEffects(fx);
+  renderMeters(fx);
+  state.pendingNote = `The weekend restored a little sanity (+${WEEKEND_SANITY_BONUS}), ` +
+    `but the ops tempo grinds on: ${describeEffects(pressure)}.`;
+  if (isGameOver()) {
+    renderGameOver();
+    showScreen("screen-end");
+    return;
   }
+  // There's a chance of a random event before the week starts.
+  if (Math.random() < EVENT_CHANCE) startEvent();
+  else showWeekIntro();
 }
 
-function showMeetingIntro() {
-  renderMeetingIntro(state.pendingNote);
+function showWeekIntro() {
+  renderWeekIntro(state.pendingNote);
   showScreen("screen-intro");
 }
 
@@ -1100,7 +1292,7 @@ function chooseEventOption(choice) {
   document.getElementById("event-choices").classList.add("hidden");
 
   const continueButton = document.getElementById("btn-event-continue");
-  continueButton.textContent = isGameOver() ? "Oh no" : `On to ${currentDay()}'s CAB`;
+  continueButton.textContent = isGameOver() ? "Oh no" : `On to week ${state.week}`;
   continueButton.classList.remove("hidden");
 }
 
@@ -1109,14 +1301,14 @@ function afterEvent() {
     renderGameOver();
     showScreen("screen-end");
   } else {
-    showMeetingIntro();
+    showWeekIntro();
   }
 }
 
 // Connect buttons to the functions above.
-document.getElementById("btn-start").addEventListener("click", startMeeting);
+document.getElementById("btn-start").addEventListener("click", startReview);
 document.getElementById("btn-next").addEventListener("click", nextCard);
-document.getElementById("btn-continue").addEventListener("click", afterConsequences);
+document.getElementById("btn-continue").addEventListener("click", afterResults);
 document.getElementById("btn-next-week").addEventListener("click", startNextWeek);
 document.getElementById("btn-event-continue").addEventListener("click", afterEvent);
 document.getElementById("btn-restart").addEventListener("click", newGame);
@@ -1187,8 +1379,8 @@ document.getElementById("rfc-card").addEventListener("click", event => {
   if (button) openCatalogue(button.dataset.catalogue);
 });
 
-// Keyboard shortcuts: A / R / S to decide, Enter to press the screen's
-// main "continue" button.
+// Keyboard shortcuts: R = ready, N = not ready, H = hold (freeze only),
+// C = catalogue, Enter = the screen's main "continue" button.
 const CONTINUE_BUTTONS = ["btn-start", "btn-next", "btn-continue", "btn-event-continue",
   "btn-next-week", "btn-restart"];
 
@@ -1203,11 +1395,11 @@ document.addEventListener("keydown", event => {
     return;
   }
 
-  const decision = { a: "approve", r: "reject", s: "sendBack", h: "hold" }[event.key.toLowerCase()];
+  const decision = { r: "ready", n: "sendBack", h: "hold" }[event.key.toLowerCase()];
   const decisionButton = decision && document.querySelector(`[data-decision=${decision}]`);
-  const onMeeting = !document.getElementById("screen-meeting").classList.contains("hidden");
+  const onReview = !document.getElementById("screen-meeting").classList.contains("hidden");
   const buttonShown = decisionButton && !decisionButton.classList.contains("hidden");
-  if (buttonShown && onMeeting && !decisionButton.disabled) {
+  if (buttonShown && onReview && !decisionButton.disabled) {
     decisionButton.click();
     return;
   }
@@ -1222,6 +1414,6 @@ document.addEventListener("keydown", event => {
   }
 });
 
-// Set up the first meeting when the page loads.
+// Set up the first week when the page loads.
 renderDataProblems();
 newGame();

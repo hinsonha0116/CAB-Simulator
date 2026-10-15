@@ -1,7 +1,7 @@
 # CAB Simulator
 
-A tongue-in-cheek browser game about chairing the Change Advisory Board for
-a military installation's IT network, based on ITIL 4 change enablement.
+A tongue-in-cheek browser game about being the **Change Manager** for a
+military installation's IT network, based on ITIL 4 change enablement.
 500 change requests covering firewalls, routers, switches, servers and
 software updates.
 
@@ -10,24 +10,41 @@ software updates.
 Open `index.html` in any browser, or play it on GitHub Pages. No install or
 build step needed.
 
-Each week has two CAB meetings (Tuesday and Thursday). For each change
-request (RFC), choose **Approve**, **Reject**, or **Send Back for More Info**
-(keyboard: **A / R / S**, **Enter** to continue). Keep all four meters
-(Stability, Leadership Happiness, Audit Readiness, Your Sanity) above zero.
+You don't approve changes: the **CAB** does, once a week on Thursday. Your
+job is to decide which requests are **ready** to go in front of the board.
+Keep all four meters (Stability, Leadership Happiness, Audit Readiness,
+Your Sanity) above zero.
 
-- **Approved** changes are implemented after the meeting. Their *hidden* true
-  risk decides whether they cause an outage; testing evidence changes how
-  likely that is, and the rollback plan decides how bad it is.
-- **Rejected** changes can come back as Emergencies or get escalated up the
-  chain of command. Rejecting a genuinely dangerous one earns a "bullet dodged".
-- **Sent back** changes return a meeting or two later, improved or not,
-  depending on who raised them.
-- **Change freezes** (exercises, VIP visits, block leave): only Emergency
-  changes should go in. A **Place on Hold** button (keyboard **H**) parks
-  everything else until the freeze lifts.
+Each week:
+
+1. **Review your queue** of 5-10 RFCs. For each one choose **Ready for CAB**
+   (keyboard **R**) or **Not Ready: Send Back** (**N**).
+   - *Standard* changes are pre-authorized: if ready, they're logged and skip the CAB.
+     Check the catalogue: some "standard" changes aren't.
+   - *Emergency* changes go to the Emergency CAB the same day.
+   - During a **change freeze**, a **Place on Hold** button (**H**) parks
+     non-emergency changes until the freeze lifts.
+2. **Thursday's CAB** votes on what you sent. Well-prepared RFCs (solid
+   rollback plan, real testing) usually get approved. Send the board
+   half-baked work and they'll want to know why you let it through.
+3. **Implementation:** approved changes go in. Their *hidden* true risk
+   decides whether they cause an outage; testing evidence changes how
+   likely that is, and the rollback plan decides how bad it is.
+4. **Week summary:** a performance rating plus your **triage accuracy**,
+   with every call marked ✓ or ✗.
+
+More things that happen:
+
+- **Sent back** changes return the next week, improved or not, depending
+  on who raised them. Send back a change that was actually ready and the
+  requester (and sometimes the problem) gets worse.
+- Changes the CAB **rejects** can come back as Emergencies or get escalated
+  up the chain of command.
+- The **ops tempo** wears every meter down a little each week, and it gets
+  heavier over time, so even great Change Managers eventually burn out.
 - **Collisions:** two approved changes touching the same system in the same
   change window can clash. Cards warn you about schedule conflicts.
-- **Random events** between meetings: no-notice cyber inspections, change
+- **Random events** between weeks: no-notice cyber inspections, change
   freezes, pressure from the Colonel's office and discovered unauthorized changes.
 - **Standard Change Catalogue:** open it any time (button at the top, or
   press **C**) to check whether a "Standard" change really meets the

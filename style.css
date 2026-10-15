@@ -244,6 +244,7 @@ h2 { line-height: 1.25; }
 .stamp.approve { color: var(--good); }
 .stamp.reject { color: var(--bad); }
 .stamp.sendBack { color: var(--warn); }
+.stamp.ready { color: var(--good); }
 .stamp.hold { color: #4a6b8a; }
 
 /* ---------- Buttons ---------- */
@@ -314,6 +315,26 @@ kbd {
 .report.warn h3 { color: var(--warn); }
 .report.good h3 { color: var(--good); }
 .report.info h3 { color: var(--muted); }
+
+/* Results screen: CAB minutes / implementation / requesters */
+.cab-scene { color: var(--muted); font-style: italic; }
+.results-heading {
+  margin: 20px 0 8px;
+  padding-bottom: 4px;
+  border-bottom: 2px solid var(--border);
+  font-size: 1.05rem;
+}
+.results-empty { color: var(--muted); font-style: italic; }
+
+/* ✓ / ✗ marks in the week summary's decision list */
+.call { font-weight: 800; }
+.call.good { color: var(--good); }
+.call.bad { color: var(--bad); }
+.stats-key { color: var(--muted); font-size: 0.85rem; margin: 0 0 4px; }
+
+/* "How to play" box on the first week's intro */
+#intro-rules ul { padding-left: 20px; }
+#intro-rules li { margin-bottom: 6px; }
 
 /* ---------- Banners on RFC cards ---------- */
 /* Change schedule conflict warning */
