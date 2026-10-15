@@ -179,9 +179,35 @@ You can add new freeze reasons by adding text variants to the `changeFreeze` eve
 | `RESUBMISSION_NOTES` | What a sent-back RFC says when it returns |
 | `MEETING_INTROS` | Scene-setting lines at the top of the CAB results |
 | `CAB_COMMENTS` | What the board (MAJ Albright, CW2 Jackson, Morgan) says about the RFCs you send them |
+| `MENTOR` | Chris, the Configuration Manager who debriefs you each week (see below) |
 | `PERFORMANCE_RATINGS` | End-of-week titles and jokes |
 | `EVENTS` | Random events between meetings (add more text variants freely) |
 | `STANDARD_CHANGE_CATALOGUE` | Pre-authorized change types and their conditions (the in-game reference) |
+
+### Chris's weekly debrief (MENTOR)
+
+Chris is **not** in `CHARACTERS`, so he never submits RFCs. At the end of each
+week the game looks at your calls and picks up to three tips, most
+important first:
+
+| Tip key | When Chris brings it up |
+|---|---|
+| `emergencyDelayed` | You sent back or held an Emergency change |
+| `freezeViolation` | You marked something ready during a freeze |
+| `fakeStandard` | You logged a "Standard" change that wasn't fully prepared |
+| `rankPressure` | You forwarded an unready RFC from a High-clout requester |
+| `forwardedJunk` | You forwarded an unready RFC |
+| `sentBackReady` | You sent back an RFC that was ready |
+| `collisions` | Two of this week's changes collided |
+| `badRollback` | A change failed and its rollback plan wasn't solid |
+| `partialTesting` | A borderline change failed |
+| `goodProcessBadLuck` | You made the right call and it still failed |
+| `lowLeadership`, `lowAudit`, `lowStability`, `lowSanity` | That meter is below 30 |
+| `perfectWeek` | No mistakes and no incidents |
+
+You can add more variants to any tip list, or more lines to `openers`,
+`general` (general wisdom) and `signoffs`. Use `{ids}` in a tip to name the
+RFCs it's about.
 
 ### Adding a catalogue entry
 

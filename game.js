@@ -110,6 +110,16 @@ function checkData() {
     if (!CAB_COMMENTS[k] || CAB_COMMENTS[k].length === 0) dataProblems.push(`CAB_COMMENTS: missing ${k}`);
   });
 
+  // Chris (MENTOR) needs every list of lines the debrief can use.
+  ["openers", "general", "signoffs"].forEach(k => {
+    if (!MENTOR[k] || MENTOR[k].length === 0) dataProblems.push(`MENTOR: missing ${k}`);
+  });
+  ["emergencyDelayed", "freezeViolation", "fakeStandard", "rankPressure", "forwardedJunk",
+   "sentBackReady", "collisions", "badRollback", "partialTesting", "goodProcessBadLuck",
+   "lowLeadership", "lowAudit", "lowStability", "lowSanity", "perfectWeek"].forEach(k => {
+    if (!MENTOR.tips || !MENTOR.tips[k] || MENTOR.tips[k].length === 0) dataProblems.push(`MENTOR: missing tips.${k}`);
+  });
+
   EVENTS.forEach(event => {
     const where = `Event "${event.id}"`;
     if (!event.title || !event.text || !event.choices || event.choices.length === 0) {
@@ -683,6 +693,82 @@ function getPerformanceRating(entries) {
   return PERFORMANCE_RATINGS.mediocre;
 }
 
+// 3h-2. CHRIS'S WEEKLY DEBRIEF. Chris (the Configuration Manager, in
+//       data.js as MENTOR) looks back over the week's calls and picks
+//       the most useful things to tell you. The checks below run in order
+//       of importance; Chris mentions up to MAX_TIPS of them, and each
+//       RFC is only mentioned once.
+const MAX_TIPS = 3;
+const LOW_METER = 30;  // below this, Chris warns you about the meter
+
+function chrisDebrief(entries) {
+  const outage = h => h.implementation && h.implementation.outcome === "outage";
+  const clout = h => CHARACTERS[h.rfc.requester].clout;
+
+  // Each check: [tip key, which of this week's entries it's about].
+  const checks = [
+    ["emergencyDelayed", entries.filter(h => h.rfc.type === "Emergency" && h.decision !== "ready")],
+    ["freezeViolation", entries.filter(h => h.freezeViolation)],
+    ["fakeStandard", entries.filter(h => h.decision === "ready" && h.rfc.type === "Standard" && h.assessment === "notReady")],
+    ["rankPressure", entries.filter(h => h.decision === "ready" && h.rfc.type === "Normal" && h.assessment === "notReady" && clout(h) === "High")],
+    ["forwardedJunk", entries.filter(h => h.decision === "ready" && h.rfc.type === "Normal" && h.assessment === "notReady" && clout(h) !== "High")],
+    ["sentBackReady", entries.filter(h => h.decision === "sendBack" && h.rfc.type !== "Emergency" && h.assessment === "ready")],
+    ["collisions", entries.filter(h => h.collisions)],
+    ["badRollback", entries.filter(h => outage(h) && h.rfc.rollback !== "solid")],
+    ["partialTesting", entries.filter(h => outage(h) && h.assessment === "borderline")],
+    ["goodProcessBadLuck", entries.filter(h => outage(h) && h.assessment === "ready")]
+  ];
+
+  const tips = [];
+  const mentioned = new Set();
+  let mistakes = 0;
+  checks.forEach(([key, list], index) => {
+    const fresh = list.filter(h => !mentioned.has(h.rfc.id));
+    if (fresh.length === 0) return;
+    if (index <= 5) mistakes++;            // the first six checks are judgement calls
+    if (tips.length >= MAX_TIPS) return;
+    fresh.forEach(h => mentioned.add(h.rfc.id));
+    const ids = fresh.slice(0, 3).map(h => h.rfc.id).join(", ") + (fresh.length > 3 ? " and others" : "");
+    tips.push(pickRandom(MENTOR.tips[key]).replaceAll("{ids}", ids).replaceAll("{count}", fresh.length));
+  });
+
+  // A clean week gets praise first.
+  if (mistakes === 0 && countOutages(entries) === 0) tips.unshift(pickRandom(MENTOR.tips.perfectWeek));
+
+  // Warn about the lowest meter if it's getting dangerous.
+  const lowest = Object.keys(state.meters).sort((a, b) => state.meters[a] - state.meters[b])[0];
+  const lowKey = { stability: "lowStability", leadership: "lowLeadership", audit: "lowAudit", sanity: "lowSanity" }[lowest];
+  if (state.meters[lowest] < LOW_METER && tips.length < MAX_TIPS) tips.push(pickRandom(MENTOR.tips[lowKey]));
+
+  // Room for one more? Add a bit of general wisdom.
+  if (tips.length < MAX_TIPS) tips.push(pickRandom(MENTOR.general));
+
+  // The week in numbers.
+  const incidents = countOutages(entries);
+  const summary = MENTOR.summaryLine
+    .replaceAll("{reviewed}", entries.length)
+    .replaceAll("{forwarded}", entries.filter(h => h.decision === "ready").length)
+    .replaceAll("{implemented}", entries.filter(h => h.implementation).length)
+    .replaceAll("{incidents}", incidents === 0 ? "no incidents" : incidents === 1 ? "1 incident" : `${incidents} incidents`)
+    .replaceAll("{sentBack}", entries.filter(h => h.decision === "sendBack").length)
+    .replaceAll("{accuracy}", Math.round(100 * triageAccuracy(entries)));
+
+  // List the incident numbers, the way they'd appear in the CMDB.
+  const incidentNumbers = [];
+  entries.forEach(h => {
+    if (outage(h)) incidentNumbers.push(`${h.implementation.number} (${h.rfc.id})`);
+    (h.collisions || []).forEach(c => incidentNumbers.push(`${c.number} (collision)`));
+  });
+
+  return {
+    opener: pickRandom(MENTOR.openers),
+    summary,
+    incidents: incidentNumbers,
+    tips,
+    signoff: pickRandom(MENTOR.signoffs)
+  };
+}
+
 // 3i. RANDOM EVENTS between weeks. The events themselves (text and
 //     choices) live in data.js; the special rules live here.
 const EVENT_CHANCE = 0.6;  // chance of an event before each week
@@ -1065,12 +1151,37 @@ function renderStats(entries) {
   `;
 }
 
+// Chris's debrief panel on the week summary screen.
+function renderMentorPanel(debrief) {
+  const incidents = debrief.incidents.length
+    ? `<p class="mentor-incidents">Logged in the CMDB this week: ${debrief.incidents.join(", ")}.</p>`
+    : "";
+  return `
+    <section class="mentor" aria-label="Weekly debrief from ${MENTOR.name}">
+      <div class="mentor-head">
+        <span class="avatar mentor-avatar" aria-hidden="true">${MENTOR.name[0]}</span>
+        <div>
+          <p class="mentor-name">${MENTOR.name} <span>&middot; ${MENTOR.role}</span></p>
+          <p class="mentor-personality">${MENTOR.personality}</p>
+        </div>
+      </div>
+      <p class="mentor-opener">"${debrief.opener}"</p>
+      <p>${debrief.summary}</p>
+      ${incidents}
+      <p class="mentor-tips-title">Things to think about</p>
+      <ul class="mentor-tips">${debrief.tips.map(t => `<li>${t}</li>`).join("")}</ul>
+      <p class="mentor-signoff">"${debrief.signoff}"</p>
+    </section>
+  `;
+}
+
 function renderWeekSummary() {
   const entries = decisionsThisWeek();
   const rating = getPerformanceRating(entries);
 
   document.getElementById("week-title").textContent = `Week ${state.week} complete`;
   document.getElementById("week-summary").innerHTML = `
+    ${renderMentorPanel(chrisDebrief(entries))}
     <div class="rating">
       <p class="rating-label">Performance rating</p>
       <p class="rating-title">${rating.title}</p>

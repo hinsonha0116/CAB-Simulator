@@ -24,6 +24,7 @@
    - RESUBMISSION_NOTES:  what a sent-back RFC says when it returns
    - MEETING_INTROS:      scene-setting lines shown at the top of the CAB results
    - CAB_COMMENTS:        what the board says about the RFCs you sent them
+   - MENTOR:              Chris, who debriefs you at the end of each week
    - PERFORMANCE_RATINGS: end-of-week titles and jokes
    - EVENTS:              random events between weeks
    - STANDARD_CHANGE_CATALOGUE: pre-authorized change types
@@ -418,6 +419,120 @@ const CAB_COMMENTS = {
     "MAJ Albright: 'We are in a change freeze. Why is this on my agenda?' It's pulled and placed on hold.",
     "The board refuses to discuss it during the freeze. It's placed on hold, and the XO hears that you tried.",
     "CW2 Jackson: 'Freeze.' One word. The item is pulled and held."
+  ]
+};
+
+/* ---------------------------------------------------------------------
+   MENTOR: Chris, the seasoned Configuration Manager.
+   Chris never submits changes. At the end of every week Chris gives you
+   a debrief: a summary of the week's changes and tips on what to think
+   about next time. game.js decides WHICH tips you get, based on the
+   calls you made; the words live here.
+
+   Placeholders you can use in tips:
+     {ids}   the RFC ids the tip is about, e.g. "FW-021, SV-043"
+     {count} how many RFCs the tip is about
+   Placeholders in summaryLine:
+     {reviewed} {forwarded} {implemented} {incidents} {sentBack} {accuracy}
+   --------------------------------------------------------------------- */
+const MENTOR = {
+  name: "Chris",
+  role: "Seasoned Configuration Manager",
+  personality: "Has tracked every configuration item on this installation since it was a cow pasture. Keeps the CMDB like a family Bible.",
+
+  // How Chris opens the debrief (picked at random).
+  openers: [
+    "Pull up a chair. Coffee's terrible, but it's hot.",
+    "Got a minute before you head out? Let's look at the week.",
+    "I've updated the CMDB with everything that changed this week. Here's what it tells me.",
+    "Close the door. Let's talk about the week while it's still fresh."
+  ],
+
+  // The week in one paragraph.
+  // {incidents} is filled in as "no incidents", "1 incident", "3 incidents"...
+  summaryLine: "You reviewed {reviewed} change requests and sent {forwarded} forward. {implemented} actually went in, causing {incidents}. {sentBack} went back to their requesters. By my count, {accuracy}% of your readiness calls were sound.",
+
+  // Tips, keyed by what happened. Each has a few variants.
+  tips: {
+    emergencyDelayed: [
+      "You held up {ids}. Emergency changes don't wait for paperwork or freezes; that's what the ECAB is for. Send them through and let the board judge the risk.",
+      "{ids} was an emergency, and you parked it. The fault doesn't stop because the form is untidy. Emergencies go to the ECAB, every time."
+    ],
+    freezeViolation: [
+      "You sent {ids} to the board during a freeze. In a freeze, anything that isn't an emergency goes ON HOLD. Read the banner at the top of the card.",
+      "Freeze means freeze. {ids} should have been held, not forwarded. The board had to pull it, and the XO noticed."
+    ],
+    fakeStandard: [
+      "You logged {ids} as a standard change. Check it against the catalogue: a standard change has to meet every condition, and that one didn't. If it isn't fully prepared, it isn't standard.",
+      "{ids} called itself 'Standard'. Calling it standard doesn't make it standard. Open the catalogue and read the conditions; if even one fails, send it back to be raised as a Normal change."
+    ],
+    rankPressure: [
+      "{ids} came from the Colonel's office and wasn't ready, but you forwarded it anyway. Rank doesn't make an RFC ready. If you don't send it back, the board will usually wave it through, and then it's your outage too.",
+      "I know who sent {ids}. It still had no real rollback plan or testing. Your job is to protect the network, not the requester's feelings, whatever their rank."
+    ],
+    forwardedJunk: [
+      "You forwarded {ids} without a real rollback plan or testing evidence. Before anything goes to the board, look at those two lines first. If both are weak, it isn't ready.",
+      "The board had to ask why {ids} reached them. Rule of thumb: solid rollback plus real testing is ready. Missing either one, think hard. Missing both, send it back.",
+      "{ids} wasn't ready. The stated risk is the requester's opinion; the rollback plan and the test evidence are the facts. Judge on the facts."
+    ],
+    sentBackReady: [
+      "You sent back {ids}, and it was ready: solid rollback, real testing. Every bounce costs goodwill and time, and sometimes the problem gets worse while it waits. Don't make good work jump through hoops.",
+      "{ids} had everything the board asks for and you still bounced it. Being careful is good. Being a wall isn't. Requesters stop bothering to do it right if right gets sent back too."
+    ],
+    collisions: [
+      "{ids} collided with another change on the same system. When you see the yellow schedule warning, think about whether both should go in the same week. Stagger work on the same configuration items.",
+      "Two changes on the same box in the same window: that's how {ids} turned into an incident. The schedule warning on the card is there for a reason. Read it."
+    ],
+    badRollback: [
+      "{ids} broke, and the weak rollback plan turned a blip into a long night. The rollback plan decides how bad a failure is. A change with a poor one needs a very good reason to go ahead.",
+      "When {ids} failed, there was no good way back. Everything fails sometimes; that's exactly why the rollback plan matters more than the stated risk."
+    ],
+    partialTesting: [
+      "{ids} was borderline, and it went wrong. Partial testing means somebody hasn't tested the bit that's going to hurt. Borderline calls are yours to make, but ask what wasn't tested.",
+      "{ids} had gaps and they showed. On borderline RFCs, look at the justification: the requester often tells you exactly what they didn't test."
+    ],
+    goodProcessBadLuck: [
+      "{ids} was a sound call and it still failed. That happens; you can't see everything that's hidden in the network. That's why we insist on rollback plans. Don't let one bad night make you a wall.",
+      "You did the right thing with {ids} and it still caused an incident. Good process doesn't mean nothing breaks. It means when it breaks, you can recover. Keep making the same call."
+    ],
+    lowLeadership: [
+      "Leadership is getting impatient with you. Make sure you're only sending back what's genuinely not ready, and don't forget emergencies need to move fast.",
+      "The front office is losing patience. You can't keep everyone happy, but make sure every send-back is one you could defend to the Colonel's face."
+    ],
+    lowAudit: [
+      "The inspectors will be back, and your records are getting thin. Every weak RFC you forward and every 'standard' change that wasn't is a finding waiting to happen.",
+      "Audit readiness is low. Find the weak ones before the board does, and don't let anything go through during a freeze."
+    ],
+    lowStability: [
+      "The network's taking a beating. Look harder at what goes in together, and favour changes with solid rollback plans until things settle.",
+      "Stability is low. This is a week to be picky: only fully prepared changes, and nothing piled onto the same systems."
+    ],
+    lowSanity: [
+      "You look tired. Clean, quick calls on the obvious ones save your energy for the hard ones. And go home on time once this week.",
+      "Your sanity's running low. Not every RFC is a crisis. Ready is ready, junk is junk; save the agonising for the borderline ones."
+    ],
+    perfectWeek: [
+      "Honestly? I've got nothing to correct. Every call was sound. Enjoy that; it doesn't happen often.",
+      "Clean week. Ready work went forward, weak work went back, emergencies moved. That's the job."
+    ]
+  },
+
+  // General wisdom, used when there's room for one more tip.
+  general: [
+    "The CMDB tells you what a change touches. The systems list on the card is the short version. Two changes on the same configuration item is the first thing I look for.",
+    "Requesters with clout aren't wrong more often. They're just harder to say no to. Judge the RFC, not the name on it.",
+    "A good RFC answers three questions before you ask: how do we know it works, how do we undo it, and when will it happen.",
+    "A standard change is a promise: low risk, done this exact way, every time. If the RFC is improvising, it isn't standard.",
+    "Your job isn't to stop change. It's to make sure the changes that go ahead are ones we can live with if they fail.",
+    "Watch the window. A change planned for Friday at 1645 is telling you something about how much the requester has thought it through."
+  ],
+
+  // How Chris signs off (picked at random).
+  signoffs: [
+    "Same time next week.",
+    "Go home. The network will still be here tomorrow. Probably.",
+    "I'll update the CMDB. You update your notes.",
+    "Good talk. Don't tell Kowalski I said any of this."
   ]
 };
 

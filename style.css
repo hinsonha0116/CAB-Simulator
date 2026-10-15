@@ -391,6 +391,37 @@ kbd {
 }
 #event-result ul { margin: 6px 0; padding-left: 20px; }
 
+/* ---------- Chris's weekly debrief ---------- */
+.mentor {
+  border: 1px solid var(--border);
+  border-left: 6px solid #6b5a8a;   /* Chris's colour: muted purple */
+  border-radius: 10px;
+  padding: 14px 16px;
+  margin-bottom: 18px;
+  background: var(--panel-soft);
+}
+.mentor-head { display: flex; align-items: center; gap: 12px; margin-bottom: 8px; }
+.mentor-avatar { background: #6b5a8a; width: 46px; height: 46px; font-size: 1.1rem; }
+.mentor-name { margin: 0; font-weight: 700; }
+.mentor-name span { font-weight: 400; color: var(--muted); }
+.mentor-personality { margin: 2px 0 0; color: var(--muted); font-size: 0.85rem; font-style: italic; }
+.mentor-opener { font-style: italic; }
+.mentor-incidents { color: var(--muted); font-size: 0.9rem; }
+.mentor-tips-title {
+  margin: 12px 0 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #6b5a8a;
+}
+.mentor-tips { padding-left: 20px; margin: 0; }
+.mentor-tips li { margin-bottom: 8px; }
+.mentor-signoff { margin: 10px 0 0; font-style: italic; color: var(--muted); }
+@media (prefers-color-scheme: dark) {
+  .mentor-tips-title { color: #a593c9; }
+}
+
 /* ---------- Week summary and game over ---------- */
 .rating {
   text-align: center;

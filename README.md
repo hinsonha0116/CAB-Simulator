@@ -30,8 +30,11 @@ Each week:
 3. **Implementation:** approved changes go in. Their *hidden* true risk
    decides whether they cause an outage; testing evidence changes how
    likely that is, and the rollback plan decides how bad it is.
-4. **Week summary:** a performance rating plus your **triage accuracy**,
-   with every call marked ✓ or ✗.
+4. **Week summary:** **Chris, the seasoned Configuration Manager**, gives you
+   a debrief: what changed this week, what broke, and up to three tips on
+   what to think about next time, naming the RFCs you got wrong. Then a
+   performance rating and your **triage accuracy**, with every call marked
+   ✓ or ✗.
 
 More things that happen:
 
