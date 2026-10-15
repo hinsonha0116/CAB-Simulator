@@ -25,7 +25,11 @@ function resetGame() {
     },
     week: 1,
     meetingIndex: 0,     // 0 = Tuesday, 1 = Thursday
+    meetingNumber: 0,    // counts every meeting so far (1, 2, 3...)
     deck: shuffle([...RFCS]), // RFCs waiting to be put on an agenda
+    // RFCs coming back later (sent back, or returning as emergencies):
+    // { rfc, dueMeeting }
+    returning: [],
     agenda: [],          // the RFCs in the current meeting
     currentIndex: 0,     // which RFC on the agenda we're looking at
     // Every decision ever made, each stamped with its week and day:
@@ -60,17 +64,36 @@ function shuffle(list) {
   return list;
 }
 
-// Deal 3-5 RFCs off the top of the deck. When the deck runs out,
-// reshuffle the whole pool so the game can keep going.
+// A returning RFC is a modified COPY of the original, with a new id
+// like "CHG0002-R1". baseId is always the original id.
+function baseId(rfc) {
+  return rfc.baseId || rfc.id;
+}
+
 function drawAgenda() {
-  const size = MIN_RFCS_PER_MEETING +
-    Math.floor(Math.random() * (MAX_RFCS_PER_MEETING - MIN_RFCS_PER_MEETING + 1));
-  const agenda = [];
+  // 1. RFCs that are due back go on the agenda first, emergencies on top.
+  const due = state.returning.filter(r => r.dueMeeting <= state.meetingNumber);
+  state.returning = state.returning.filter(r => r.dueMeeting > state.meetingNumber);
+  const agenda = due.map(r => r.rfc)
+    .sort((a, b) => (b.type === "Emergency") - (a.type === "Emergency"));
+
+  // 2. Top up with fresh RFCs to 3-5 in total. When the deck runs out,
+  //    reshuffle the whole pool so the game can keep going.
+  const size = Math.max(agenda.length, MIN_RFCS_PER_MEETING +
+    Math.floor(Math.random() * (MAX_RFCS_PER_MEETING - MIN_RFCS_PER_MEETING + 1)));
+
+  // Don't deal an RFC if a version of it is already on this agenda
+  // or is waiting to come back later.
+  const isBlocked = rfc =>
+    agenda.some(a => baseId(a) === rfc.id) ||
+    state.returning.some(r => baseId(r.rfc) === rfc.id);
+
   while (agenda.length < size) {
     if (state.deck.length === 0) {
-      state.deck = shuffle(RFCS.filter(rfc => !agenda.includes(rfc)));
+      state.deck = shuffle(RFCS.filter(rfc => !isBlocked(rfc)));
     }
-    agenda.push(state.deck.pop());
+    const rfc = state.deck.pop();
+    if (!isBlocked(rfc)) agenda.push(rfc);
   }
   return agenda;
 }
@@ -147,35 +170,120 @@ function chanceOfOutage(rfc) {
   return Math.max(0.02, Math.min(0.95, chance)); // never 0% or 100%
 }
 
+// Every after-meeting result is a "report". style = colour on screen:
+// "bad" (red), "warn" (yellow), "good" (green), "info" (grey).
+function makeReport(rfc, outcome, label, style, text, fx, extra = {}) {
+  return { number: null, rfc, outcome, label, style, text: fillIn(text, rfc), fx, ...extra };
+}
+
 // Roll the dice for one approved RFC and build its incident report.
 function resolveApprovedChange(rfc) {
   const isOutage = Math.random() < chanceOfOutage(rfc);
-  const system = rfc.systems[0];
 
   if (isOutage) {
     const severity = OUTAGE_SEVERITY[rfc.rollback];
-    return {
-      number: "INC" + state.nextIncidentNumber++,
-      rfc,
-      outcome: "outage",
-      label: severity.label + " outage",
-      duration: severity.duration,
-      text: fillIn(rfc.outageReport || pickRandom(GENERIC_REPORTS.outage), system),
-      fx: severity.fx
-    };
+    return makeReport(rfc, "outage", severity.label + " outage", "bad",
+      rfc.outageReport || pickRandom(GENERIC_REPORTS.outage), severity.fx,
+      { number: "INC" + state.nextIncidentNumber++, duration: severity.duration });
   }
 
-  return {
-    number: null, // successful changes don't get an incident number
-    rfc,
-    outcome: "success",
-    label: "Successful change",
-    text: fillIn(rfc.successReport || pickRandom(GENERIC_REPORTS.success), system),
-    fx: SUCCESS_FX
-  };
+  return makeReport(rfc, "success", "Successful change", "good",
+    rfc.successReport || pickRandom(GENERIC_REPORTS.success), SUCCESS_FX);
 }
 
-// 3c. End-of-week performance rating. Checked top to bottom: the
+// 3c. What happens to a REJECTED change after the meeting.
+const EMERGENCY_RETURN_CHANCE = 0.6;  // if the RFC has a returnsAsEmergency version
+const ESCALATION_CHANCE = { High: 0.7, Medium: 0.4, Low: 0.15 }; // by requester's clout
+
+const NO_FX = { stability: 0, leadership: 0, audit: 0, sanity: 0 };
+const EMERGENCY_RETURN_FX = { stability: -6, leadership: -4, audit: 0, sanity: -3 };
+const ESCALATION_FX = { stability: 0, leadership: -8, audit: 0, sanity: -4 };
+const DODGED_FX = { stability: 2, leadership: 0, audit: 2, sanity: 2 };
+
+function resolveRejectedChange(rfc) {
+  const person = CHARACTERS[rfc.requester];
+
+  // 1. The problem the change was meant to fix gets worse -> it comes
+  //    back at the very next meeting as an Emergency change.
+  if (rfc.returnsAsEmergency && Math.random() < EMERGENCY_RETURN_CHANCE) {
+    const { reason, ...changes } = rfc.returnsAsEmergency;
+    const emergency = {
+      ...rfc,
+      ...changes,
+      type: "Emergency",
+      id: baseId(rfc) + "-E",
+      baseId: baseId(rfc),
+      returnsAsEmergency: null, // it can't turn into an emergency twice
+      returnNote: `Back as an EMERGENCY. You rejected this at ${currentDay()}'s CAB.`,
+      returnStyle: "bad"
+    };
+    state.returning.push({ rfc: emergency, dueMeeting: state.meetingNumber + 1 });
+    return makeReport(rfc, "emergency", "Problem got worse", "bad", reason, EMERGENCY_RETURN_FX);
+  }
+
+  // 2. The requester goes over your head.
+  if (Math.random() < ESCALATION_CHANCE[person.clout]) {
+    return makeReport(rfc, "escalation", "Escalated to leadership", "warn",
+      rfc.rejectedReport || pickRandom(GENERIC_REPORTS.escalation), ESCALATION_FX);
+  }
+
+  // 3. It really WAS dangerous, and you saw it. Small reward.
+  if (rfc.hiddenRisk === "High") {
+    return makeReport(rfc, "dodged", "Bullet dodged", "good",
+      pickRandom(GENERIC_REPORTS.dodged), DODGED_FX);
+  }
+
+  return null; // the requester accepted it quietly; no report
+}
+
+// 3d. What happens to a SENT BACK change after the meeting.
+const IMPROVE_CHANCE = { High: 0.9, Medium: 0.5, Low: 0.2 }; // by requester's followThrough
+const MAX_RESUBMISSIONS = 2;  // send it back a 3rd time and they give up
+const WITHDRAWN_FX = { stability: 0, leadership: -4, audit: 0, sanity: -2 };
+
+// One step better: none -> partial -> yes, missing -> weak -> solid.
+const BETTER_TESTING = { none: "partial", partial: "yes", yes: "yes" };
+const BETTER_ROLLBACK = { missing: "weak", weak: "solid", solid: "solid" };
+
+function resolveSentBack(rfc) {
+  const person = CHARACTERS[rfc.requester];
+  const attempts = rfc.resubmissions || 0;
+
+  if (attempts >= MAX_RESUBMISSIONS) {
+    return makeReport(rfc, "withdrawn", "Withdrawn by requester", "warn",
+      pickRandom(RESUBMISSION_NOTES.withdrawn), WITHDRAWN_FX);
+  }
+
+  // Did they actually fix anything?
+  let resubmitted = { ...rfc };
+  let note;
+  if (Math.random() < IMPROVE_CHANCE[person.followThrough]) {
+    resubmitted.testing = BETTER_TESTING[rfc.testing];
+    resubmitted.rollback = BETTER_ROLLBACK[rfc.rollback];
+    const changes = [];
+    if (resubmitted.testing !== rfc.testing) changes.push(`testing ${rfc.testing} → ${resubmitted.testing}`);
+    if (resubmitted.rollback !== rfc.rollback) changes.push(`rollback ${rfc.rollback} → ${resubmitted.rollback}`);
+    note = pickRandom(RESUBMISSION_NOTES.improved) +
+      (changes.length ? ` Changes: ${changes.join(", ")}.` : " It was already solid; they added more detail anyway.");
+  } else {
+    note = pickRandom(RESUBMISSION_NOTES.unchanged);
+  }
+
+  resubmitted.resubmissions = attempts + 1;
+  resubmitted.baseId = baseId(rfc);
+  resubmitted.id = `${baseId(rfc)}-R${attempts + 1}`;
+  resubmitted.returnNote = `Resubmitted (attempt ${attempts + 2}). ${fillIn(note, rfc)}`;
+  resubmitted.returnStyle = "info";
+
+  // Back in 1 or 2 meetings' time.
+  const delay = 1 + Math.floor(Math.random() * 2);
+  state.returning.push({ rfc: resubmitted, dueMeeting: state.meetingNumber + delay });
+
+  return makeReport(rfc, "resubmit", "Sent back for more info", "info",
+    "{name} will resubmit it at a later CAB.", NO_FX);
+}
+
+// 3e. End-of-week performance rating. Checked top to bottom: the
 //     first rule that matches wins. Titles and jokes live in data.js.
 function getPerformanceRating(entries) {
   const total = entries.length;
@@ -198,8 +306,10 @@ function getPerformanceRating(entries) {
 function pickRandom(list) {
   return list[Math.floor(Math.random() * list.length)];
 }
-function fillIn(text, system) {
-  return text.replaceAll("{system}", system);
+// Replace {system} and {name} placeholders in report text.
+function fillIn(text, rfc) {
+  const firstName = CHARACTERS[rfc.requester].name.split(" ")[0];
+  return text.replaceAll("{system}", rfc.systems[0]).replaceAll("{name}", firstName);
 }
 
 // Apply a set of meter changes, keeping every meter between 0 and 100.
@@ -270,7 +380,13 @@ function renderCard(rfc) {
   document.getElementById("progress").textContent =
     `Week ${state.week} · ${currentDay()} CAB · RFC ${state.currentIndex + 1} of ${state.agenda.length}`;
 
+  // Returning RFCs get a banner explaining why they're back.
+  const banner = rfc.returnNote
+    ? `<p class="return-note ${rfc.returnStyle}">&#8617; ${rfc.returnNote}</p>`
+    : "";
+
   document.getElementById("rfc-card").innerHTML = `
+    ${banner}
     <span class="rfc-id">${rfc.id}</span>
     <h2>${rfc.title}</h2>
     <p class="requester">Requested by <strong>${person.name}</strong>, ${person.role}
@@ -319,7 +435,7 @@ function renderReport(report) {
   const source = report.outcome === "outage" ? `Caused by ${report.rfc.id}` : "Change";
 
   return `
-    <article class="report ${report.outcome}">
+    <article class="report ${report.style}">
       <h3>${heading}</h3>
       <p class="report-meta">${source}: ${report.rfc.title}</p>
       ${duration}
@@ -331,10 +447,13 @@ function renderReport(report) {
 
 function renderConsequences(reports, totalFx) {
   const outages = reports.filter(r => r.outcome === "outage").length;
+  const implemented = reports.filter(r => r.outcome === "outage" || r.outcome === "success").length;
 
   let intro;
   if (reports.length === 0) {
     intro = "You approved nothing. Nothing broke. Nothing improved. The business is unsure what you're for.";
+  } else if (implemented === 0) {
+    intro = "Nothing was approved, so nothing was implemented. But your decisions still had consequences.";
   } else if (outages === 0) {
     intro = "A quiet night. Every approved change went in cleanly.";
   } else {
@@ -363,7 +482,8 @@ function renderStats(entries) {
   const outages = entries.filter(h => h.report && h.report.outcome === "outage").length;
 
   const items = entries.map(h => {
-    const result = h.report ? ` (${h.report.label.toLowerCase()})` : "";
+    const showResult = h.report && h.report.outcome !== "resubmit";
+    const result = showResult ? ` (${h.report.label.toLowerCase()})` : "";
     return `<li><span class="when">${h.day.slice(0, 3)}</span> <strong>${h.rfc.id}</strong> ` +
       `${h.rfc.title}: ${DECISION_LABELS[h.decision]}${result}</li>`;
   }).join("");
@@ -429,6 +549,7 @@ function newGame() {
 }
 
 function startMeeting() {
+  state.meetingNumber++;
   state.agenda = drawAgenda();
   state.currentIndex = 0;
   renderMeters();
@@ -472,19 +593,21 @@ function nextCard() {
   }
 }
 
-// The meeting is over: roll the dice for every approved change.
+// The meeting is over: work out what happens with every decision.
 function endMeeting() {
   const totalFx = { stability: 0, leadership: 0, audit: 0, sanity: 0 };
   const reports = [];
 
-  decisionsThisMeeting()
-    .filter(h => h.decision === "approve")
-    .forEach(h => {
-      h.report = resolveApprovedChange(h.rfc);
-      reports.push(h.report);
-      applyEffects(h.report.fx);
-      for (const m in h.report.fx) totalFx[m] += h.report.fx[m];
-    });
+  decisionsThisMeeting().forEach(h => {
+    if (h.decision === "approve") h.report = resolveApprovedChange(h.rfc);
+    if (h.decision === "reject") h.report = resolveRejectedChange(h.rfc);
+    if (h.decision === "sendBack") h.report = resolveSentBack(h.rfc);
+    if (!h.report) return; // nothing to report
+
+    reports.push(h.report);
+    applyEffects(h.report.fx);
+    for (const m in h.report.fx) totalFx[m] += h.report.fx[m];
+  });
 
   renderConsequences(reports, totalFx);
   showScreen("screen-consequences");

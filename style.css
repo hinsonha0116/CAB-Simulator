@@ -147,14 +147,31 @@ button.sendback { background: var(--warn); }
   margin: 0 0 12px;
   background: #faf9f6;
 }
-.report.outage { border-left-color: var(--bad); }
 .report h3 {
   margin: 0 0 4px;
   font-size: 1rem;
   font-family: Consolas, monospace;
 }
-.report.outage h3 { color: var(--bad); }
-.report.success h3 { color: var(--good); }
+/* One colour per report style: bad / warn / good / info */
+.report.bad  { border-left-color: var(--bad); }
+.report.warn { border-left-color: var(--warn); }
+.report.good { border-left-color: var(--good); }
+.report.info { border-left-color: var(--muted); }
+.report.bad h3  { color: var(--bad); }
+.report.warn h3 { color: var(--warn); }
+.report.good h3 { color: var(--good); }
+.report.info h3 { color: var(--muted); }
+
+/* Banner on an RFC card that has come back */
+.return-note {
+  margin: 0 0 10px;
+  padding: 6px 10px;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+.return-note.info { background: #ecebe6; color: var(--text); }
+.return-note.bad { background: #f8e1dc; color: var(--bad); }
 .report p { margin: 4px 0; }
 .report-meta { color: var(--muted); font-size: 0.85rem; }
 .report-fx { font-size: 0.85rem; font-weight: 600; }

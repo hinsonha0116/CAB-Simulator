@@ -9,6 +9,7 @@
    - CHARACTERS:          the recurring requesters and their reactions
    - RFCS:                the pool of change requests (3-5 are dealt per meeting)
    - GENERIC_REPORTS:     fallback incident report text
+   - RESUBMISSION_NOTES:  what a sent-back RFC says when it returns
    - MEETING_INTROS:      scene-setting lines shown before each meeting
    - PERFORMANCE_RATINGS: end-of-week titles and jokes
 
@@ -28,7 +29,23 @@
         successReport: what happened if it went fine
    Leave them out and a random line from GENERIC_REPORTS is used instead.
    You can write {system} in any report and it becomes the first
-   affected system, e.g. "Orders Database".
+   affected system, e.g. "Orders Database". {name} becomes the
+   requester's first name.
+
+   OPTIONAL "what if you reject it" fields:
+        rejectedReport:     what the requester does if they escalate
+                            your rejection to leadership
+        returnsAsEmergency: { ... } the problem gets worse and the RFC
+                            comes back at the next meeting as an Emergency.
+                            Inside, list only the fields that CHANGE
+                            (title, justification, window, statedRisk,
+                            hiddenRisk, testing, rollback...), plus:
+                            reason: the report text explaining why it's back
+
+   CHARACTER traits ("High" | "Medium" | "Low"):
+        clout:         how likely they are to escalate a rejection
+        followThrough: how likely they are to actually improve an RFC
+                       you sent back (better testing / rollback plan)
 
    ITIL quick reference (used to flavour the scenarios):
    - Standard change:  low risk, pre-authorized, follows a known procedure.
@@ -45,6 +62,8 @@ const CHARACTERS = {
   priya: {
     name: "Priya Raman",
     role: "Senior DBA",
+    clout: "Low",
+    followThrough: "High",
     personality: "Meticulous. Has a runbook for her runbooks.",
     reactions: {
       approve: "Priya nods and quietly updates her change record to 'Scheduled'.",
@@ -55,6 +74,8 @@ const CHARACTERS = {
   dave: {
     name: "Dave Kowalski",
     role: "DevOps Lead",
+    clout: "Medium",
+    followThrough: "Low",
     personality: "Believes 'move fast and break things' is a compliance framework.",
     reactions: {
       approve: "Dave is already deploying. He was deploying before you clicked.",
@@ -65,6 +86,8 @@ const CHARACTERS = {
   brad: {
     name: "Brad Whitfield",
     role: "VP of Revenue Acceleration",
+    clout: "High",
+    followThrough: "Low",
     personality: "Everything is urgent. Everything is a 'quick win'.",
     reactions: {
       approve: "Brad sends you a calendar invite titled 'Synergy Celebration'.",
@@ -75,6 +98,8 @@ const CHARACTERS = {
   morgan: {
     name: "Morgan Lee",
     role: "Security Engineer",
+    clout: "Medium",
+    followThrough: "High",
     personality: "Has not slept since the last zero-day. Will not stop saying 'CVE'.",
     reactions: {
       approve: "Morgan exhales for the first time in 36 hours.",
@@ -85,6 +110,8 @@ const CHARACTERS = {
   linda: {
     name: "Linda Okafor",
     role: "Network Engineer (31 years)",
+    clout: "Low",
+    followThrough: "Medium",
     personality: "Installed the original network. Possibly IS the network.",
     reactions: {
       approve: "Linda says 'thank you, dear' and swaps the part in under 5 minutes.",
@@ -95,6 +122,8 @@ const CHARACTERS = {
   kyle: {
     name: "Kyle Brandt",
     role: "Account Manager, CloudSyncly (vendor)",
+    clout: "Medium",
+    followThrough: "Medium",
     personality: "Calls every patch a 'value-add'. Has never seen a change window.",
     reactions: {
       approve: "Kyle thanks you for 'partnering on this journey' and logs in remotely. From an airport.",
@@ -105,6 +134,8 @@ const CHARACTERS = {
   hannah: {
     name: "Hannah Ortiz",
     role: "Service Desk Manager",
+    clout: "Low",
+    followThrough: "High",
     personality: "Takes 400 calls a day. Is the only person who reads the change calendar.",
     reactions: {
       approve: "Hannah briefs her team so they know what's coming. Nobody else ever does this.",
@@ -134,7 +165,17 @@ const RFCS = [
       "and has already filed a post-implementation review. With diagrams.",
     successReport:
       "Month-end report now runs in 38 seconds. Finance sent a thank-you email. Nobody has ever " +
-      "seen Finance send a thank-you email."
+      "seen Finance send a thank-you email.",
+    returnsAsEmergency: {
+      reason:
+        "Month-end reports now time out completely. Finance cannot close the books. Priya's " +
+        "index is back, as an Emergency, with the CFO cc'd.",
+      title: "EMERGENCY: Add Orders index - month-end close is blocked",
+      window: "Tonight, 22:00 - 23:00",
+      justification:
+        "Same change as before, same testing, same rollback. The only difference is that the " +
+        "CFO is now standing behind my chair."
+    }
   },
   {
     id: "CHG0002",
@@ -174,7 +215,10 @@ const RFCS = [
       "The 40% discount applied to every customer. Then it applied again. Some orders now cost " +
       "negative money. Nobody knows what the old pricing rules were.",
     successReport:
-      "Demo went well. Brad took full credit. The discount is still live and nobody has noticed. Yet."
+      "Demo went well. Brad took full credit. The discount is still live and nobody has noticed. Yet.",
+    rejectedReport:
+      "Brad told the CEO that 'IT lost us the deal'. The client actually signed anyway, but " +
+      "that's not the story leadership heard."
   },
   {
     id: "CHG0004",
@@ -194,7 +238,20 @@ const RFCS = [
       "Gateway didn't come back after the restart. Morgan restored the previous image within the " +
       "window. Remote staff missed 40 minutes of VPN at 23:30, and nobody noticed.",
     successReport:
-      "Patched. Attack traffic now bounces off harmlessly. Morgan has finally gone to sleep."
+      "Patched. Attack traffic now bounces off harmlessly. Morgan has finally gone to sleep.",
+    returnsAsEmergency: {
+      reason:
+        "Attackers got in through the unpatched VPN. Security incident declared. The patch is " +
+        "back, and this time nobody is asking about the 20 minutes of downtime.",
+      title: "EMERGENCY: Patch VPN - active intrusion in progress",
+      statedRisk: "High",
+      window: "Immediately",
+      testing: "partial",
+      hiddenRisk: "Medium",
+      justification:
+        "We are being breached through the hole I asked to patch on Tuesday. I would like to " +
+        "patch it now. I have not slept. Please."
+    }
   },
   {
     id: "CHG0005",
@@ -211,7 +268,18 @@ const RFCS = [
       "we've done this 40 times. Honestly not sure why it's on the agenda.",
     hiddenRisk: "Low",
     successReport:
-      "New power supply installed. Linda labelled it, by hand, in a font that predates computers."
+      "New power supply installed. Linda labelled it, by hand, in a font that predates computers.",
+    returnsAsEmergency: {
+      reason:
+        "The second power supply in the core switch failed too. The whole building's network " +
+        "went down for 2 hours. Linda would like a word.",
+      title: "EMERGENCY: Replace BOTH power supplies in core switch (network is down)",
+      statedRisk: "Medium",
+      window: "Right now",
+      justification:
+        "I did say. The building is offline. I have the parts in my hand. Approve it and I'll " +
+        "have everyone back in 10 minutes."
+    }
   },
   {
     id: "CHG0006",
@@ -251,7 +319,18 @@ const RFCS = [
       "Auto-scaling scaled up to 400 servers, then down to zero, then back up. The cloud bill " +
       "has its own incident ticket now.",
     successReport:
-      "Marketing's email went out and the site stayed up. Dave has framed the graph."
+      "Marketing's email went out and the site stayed up. Dave has framed the graph.",
+    returnsAsEmergency: {
+      reason:
+        "Marketing sent a 50% off email. The website collapsed under the traffic for 90 " +
+        "minutes. Auto-scaling is back as an Emergency.",
+      title: "EMERGENCY: Turn on auto-scaling NOW (site keeps crashing)",
+      window: "Immediately",
+      testing: "partial",
+      justification:
+        "Told you. Site has crashed twice today. The toggle is right there. I am hovering my " +
+        "mouse over it as we speak."
+    }
   },
   {
     id: "CHG0008",
@@ -272,7 +351,10 @@ const RFCS = [
       "them have received 41 welcome emails.",
     successReport:
       "Surprisingly, it works. SalesRocket has only duplicated each customer twice, which Brad " +
-      "calls 'pipeline growth'."
+      "calls 'pipeline growth'.",
+    rejectedReport:
+      "Brad has escalated to the COO, the CFO, and someone from the board he met at a golf " +
+      "course. All of them now think IT is 'anti-revenue'."
   },
   {
     id: "CHG0009",
@@ -289,7 +371,18 @@ const RFCS = [
       "don't do it, every customer sees a giant red warning. Please. I'm begging.",
     hiddenRisk: "Low",
     successReport:
-      "Certificate renewed. The website remains trustworthy for another 90 days. Morgan has set 14 calendar reminders."
+      "Certificate renewed. The website remains trustworthy for another 90 days. Morgan has set 14 calendar reminders.",
+    returnsAsEmergency: {
+      reason:
+        "The certificate expired. Every customer now sees a giant red 'Your connection is not " +
+        "private' warning. Online sales have stopped.",
+      title: "EMERGENCY: Renew EXPIRED certificate (website showing security warnings)",
+      statedRisk: "Low",
+      window: "Immediately",
+      justification:
+        "It expired. As predicted. In writing. Three times. The renewal is still a 15-minute " +
+        "Standard procedure. It's just on fire now."
+    }
   },
   {
     id: "CHG0010",
@@ -309,7 +402,19 @@ const RFCS = [
       "Migration ran long and hit the 02:00 go/no-go. Priya called no-go and was back on the old " +
       "array by 02:20. Nobody outside IT noticed. This is what good looks like.",
     successReport:
-      "Migrated in 2 hours 10 minutes. Reports are faster. The clicking noise has stopped. Priya is unbearably calm about it."
+      "Migrated in 2 hours 10 minutes. Reports are faster. The clicking noise has stopped. Priya is unbearably calm about it.",
+    returnsAsEmergency: {
+      reason:
+        "The old storage array lost two disks overnight. The Orders Database is running " +
+        "degraded with no redundancy left. One more failure and it's gone.",
+      title: "EMERGENCY: Migrate Orders Database off the failing storage array",
+      window: "Tonight, 23:00 - 03:00",
+      testing: "yes",
+      hiddenRisk: "High",
+      justification:
+        "Same plan, rehearsed three times. But we now migrate from a dying array under " +
+        "pressure, with no time for a go/no-go buffer. I would have preferred last week."
+    }
   },
   {
     id: "CHG0011",
@@ -329,7 +434,10 @@ const RFCS = [
       "The hotfix fixed the bug and also deleted the payroll schedule. Kyle says this is a " +
       "'known behaviour'. Payday is in three days.",
     successReport:
-      "Hotfix applied. The HR system works. Kyle has sent an invoice for 'professional services'."
+      "Hotfix applied. The HR system works. Kyle has sent an invoice for 'professional services'.",
+    rejectedReport:
+      "Kyle went over your head to the CIO, who he golfs with. The CIO has asked why IT is " +
+      "'blocking our strategic partner'."
   },
   {
     id: "CHG0012",
@@ -386,7 +494,20 @@ const RFCS = [
       "2,000 people tried to set up MFA at 9:00 on Monday. The service desk phone system went " +
       "down first. Hannah has gone very quiet.",
     successReport:
-      "MFA is live. Phishing success rate: zero. Complaints received: 1,400. Morgan considers this a win."
+      "MFA is live. Phishing success rate: zero. Complaints received: 1,400. Morgan considers this a win.",
+    returnsAsEmergency: {
+      reason:
+        "Someone in Finance gave their password to a phishing email. The attacker sent " +
+        "$80,000 of 'invoices' from their mailbox. MFA is back, urgently.",
+      title: "EMERGENCY: Turn on MFA for Finance and executives today",
+      statedRisk: "Medium",
+      window: "Today, 14:00",
+      rollback: "solid",
+      hiddenRisk: "Low",
+      justification:
+        "Smaller scope this time: just Finance and the executives, 80 people, with the " +
+        "service desk briefed. Also, we've been robbed."
+    }
   },
   {
     id: "CHG0015",
@@ -423,7 +544,10 @@ const RFCS = [
       "same as we've done 30 times. Raising it as an Emergency because the board meets at 2pm.",
     hiddenRisk: "Low",
     successReport:
-      "Mailbox restored. The board pack arrived at 1:52pm. The CEO's assistant has sent Hannah a muffin."
+      "Mailbox restored. The board pack arrived at 1:52pm. The CEO's assistant has sent Hannah a muffin.",
+    rejectedReport:
+      "The board meeting started without its board pack. The CEO called you personally to ask " +
+      "why a mailbox quota needed a committee."
   },
   {
     id: "CHG0017",
@@ -443,7 +567,10 @@ const RFCS = [
       "The 'Buy Now' button covered the 'Log In' button on mobile. Mobile logins down 90%. " +
       "Mobile 'Buy Now' clicks up 300%, all of them by accident.",
     successReport:
-      "Button added. Nobody has clicked it. Brad says it's 'building brand awareness'."
+      "Button added. Nobody has clicked it. Brad says it's 'building brand awareness'.",
+    rejectedReport:
+      "Brad presented a slide titled 'Revenue Lost To Process' at the leadership offsite. " +
+      "Your face was on it."
   }
 ];
 
@@ -502,5 +629,37 @@ const GENERIC_REPORTS = {
     "Implemented on schedule. {system} is fine. Suspiciously fine.",
     "Change completed with no incidents. Someone actually updated the documentation.",
     "{system} updated successfully. Nobody noticed, which is the highest praise in IT."
+  ],
+  // A rejected requester went over your head (used if no rejectedReport).
+  escalation: [
+    "{name} escalated your rejection to their director, who escalated it to yours.",
+    "{name} has started a meeting series called 'Unblocking IT'. You are not invited.",
+    "{name} complained about you in the all-hands Q&A. Anonymously. Everyone knows it was {name}."
+  ],
+  // You rejected a change that really WAS dangerous. Well done.
+  dodged: [
+    "Good call. A similar change at another company took them offline for two days. {name} has quietly gone back to the drawing board.",
+    "On closer inspection, this would have broken {system}. {name} has stopped mentioning it.",
+    "The vendor has just withdrawn the version {name} wanted to install. Nice instincts."
+  ]
+};
+
+// Notes shown on a sent-back RFC when it returns to the agenda.
+// {name} becomes the requester's first name.
+const RESUBMISSION_NOTES = {
+  improved: [
+    "{name} has done the homework this time.",
+    "{name} took the feedback seriously. Who knew?",
+    "Resubmitted with real evidence attached. {name} looks tired but proud."
+  ],
+  unchanged: [
+    "{name} has resubmitted it unchanged, with 'as discussed' in the subject line.",
+    "{name} changed the font and nothing else.",
+    "Identical to last time, but now marked URGENT in red."
+  ],
+  // Sent back too many times: the requester gives up.
+  withdrawn: [
+    "{name} has withdrawn the change and is telling everyone that CAB is where changes go to die.",
+    "{name} has given up and is 'exploring options that don't involve CAB'. This is worrying."
   ]
 };
