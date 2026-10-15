@@ -675,5 +675,71 @@ RFCS.push(
     systems: ["HQ Building Switches", "Barracks Switches", "Motor Pool Switches"], window: "Tue 2000-2100",
     rollback: "solid", testing: "yes", hiddenRisk: "Low",
     justification: "Shuts a port if someone plugs a switch into it. Would have prevented last month's three loops. Lab tested."
+  },
+
+  /* ----- Mason's switch RFCs: submitted "on behalf of" the engineers ----- */
+  {
+    id: "SW-091", title: "Switches for the new barracks (on behalf of PFC Nakamura)",
+    requester: "mason", type: "Normal", statedRisk: "Low",
+    systems: ["Barracks Switches"], window: "Next week sometime",
+    rollback: "missing", testing: "none", hiddenRisk: "Low",
+    justification: "Nakamura did a real nice job on this. She's got a whole binder with diagrams and everything. I didn't bring the binder."
+  },
+  {
+    id: "SW-092", title: "Fix the Wi-Fi in the dining facility",
+    requester: "mason", type: "Normal", statedRisk: "Low",
+    systems: ["Barracks Switches"], window: "Thursday",
+    rollback: "weak", testing: "none", hiddenRisk: "Medium",
+    justification: "The cooks say the Wi-Fi's slow and they're the ones who make the biscuits, so this is a priority. The boys are going to 'move some stuff around' on the switches."
+  },
+  {
+    id: "SW-093", title: "Swap the motor pool switch that makes the noise",
+    requester: "mason", type: "Normal", statedRisk: "Low",
+    systems: ["Motor Pool Switches"], window: "Whenever the boys get to it",
+    rollback: "missing", testing: "none", hiddenRisk: "Medium",
+    justification: "There's a switch in the motor pool that's been making a grinding noise for a month. SSG Kowalski says it's fine. That's why I'm submitting this.",
+    returnsAsEmergency: {
+      reason: "The grinding motor pool switch stopped grinding. Then it stopped working. The motor pool is offline mid-inspection.",
+      title: "EMERGENCY: Replace dead motor pool switch",
+      window: "Immediately",
+      rollback: "solid",
+      testing: "partial",
+      justification: "Mrs. Okafor has a spare configured and is already walking over there. Mason has added 'I did say' to the RFC, which is technically true."
+    }
+  },
+  {
+    id: "SW-094", title: "VLAN stuff for the new project",
+    requester: "mason", type: "Standard", catalogueId: "SC-06", statedRisk: "Low",
+    systems: ["Core Switch Stack", "HQ Building Switches"], window: "Tuesday",
+    rollback: "weak", testing: "none", hiddenRisk: "Medium",
+    justification: "VLAN changes are standard, right? This is a bunch of them, on the core switches I think, for the project. Some might be new VLANs. The boys will sort out the details."
+  },
+  {
+    id: "SW-095", title: "Core switch upgrade (milestone 7 of 12)",
+    requester: "mason", type: "Normal", statedRisk: "Medium",
+    systems: ["Core Switch Stack"], window: "Saturday, if the weather holds",
+    rollback: "missing", testing: "partial", hiddenRisk: "High",
+    justification: "Milestone 7 says 'core switch upgrade'. I wrote milestone 7. The boys have done some testing, and SSG Kowalski says he's 'pretty sure' about the rest."
+  },
+  {
+    id: "SW-096", title: "Switch for the project management office",
+    requester: "mason", type: "Normal", statedRisk: "Low",
+    systems: ["HQ Building Switches"], window: "Monday",
+    rollback: "missing", testing: "none", hiddenRisk: "Low",
+    justification: "I need more ports in my office for my laptop, my other laptop, my printer, and the TV for the Gantt chart. A little switch. What's the worst that could happen?"
+  },
+  {
+    id: "SW-097", title: "Replace barracks switches, phase 2 (Mrs. Okafor's plan)",
+    requester: "mason", type: "Normal", statedRisk: "Medium",
+    systems: ["Barracks Switches"], window: "Sat 0800-1400",
+    rollback: "solid", testing: "partial", hiddenRisk: "Medium",
+    justification: "Mrs. Okafor made me attach her whole plan this time. She said she was tired of me 'abridging' her. It's got a rollback plan and everything. I read most of it."
+  },
+  {
+    id: "SW-098", title: "Turn off the blinking lights on the server room switches",
+    requester: "mason", type: "Normal", statedRisk: "Low",
+    systems: ["Data Center Switches"], window: "Tuesday",
+    rollback: "missing", testing: "none", hiddenRisk: "Medium",
+    justification: "The blinking lights are distracting the boys. There's a setting to turn the port lights off. The boys say the lights also tell them when something's broken, but they'll manage."
   }
 );

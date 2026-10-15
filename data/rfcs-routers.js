@@ -600,5 +600,71 @@ RFCS.push(
     rollback: "weak", testing: "none", hiddenRisk: "High",
     justification: "Just a quick tweak to the BGP settings. I read about it on a forum. Five minutes, then I'm off for the weekend.",
     outageReport: "The quick tweak withdrew the installation's routes from higher HQ. SSG Kowalski had already left for the weekend. CW2 Jackson fixed it at 2100. He said nothing. It was worse than shouting."
+  },
+
+  /* ----- Mason's router RFCs: submitted "on behalf of" the engineers ----- */
+  {
+    id: "RT-081", title: "Router swap at Remote Site Golf (on behalf of CW2 Jackson)",
+    requester: "mason", type: "Normal", statedRisk: "Low",
+    systems: ["Remote Site Routers"], window: "Sometime next week",
+    rollback: "missing", testing: "none", hiddenRisk: "Low",
+    justification: "CW2 Jackson's got it all figured out, he just didn't feel like writing it up, and I don't blame him. The old router's making a noise like my truck did before the transmission went.",
+    returnsAsEmergency: {
+      reason: "The Site Golf router died, making exactly the noise Mason described. Site Golf is offline.",
+      title: "EMERGENCY: Replace dead router at Remote Site Golf",
+      window: "Immediately",
+      rollback: "solid",
+      testing: "yes",
+      justification: "CW2 Jackson wrote this one himself. It says: 'Spare configured. Tested. Swap takes 20 minutes. Approve.' Mason added 'told y'all' at the bottom."
+    }
+  },
+  {
+    id: "RT-082", title: "Make the internet faster for the HQ building",
+    requester: "mason", type: "Normal", statedRisk: "Low",
+    systems: ["NIPR Core Router", "WAN Edge Router"], window: "Tuesday-ish",
+    rollback: "missing", testing: "none", hiddenRisk: "Medium",
+    justification: "The Colonel's staff say the internet's slow. The boys have some ideas. I wrote down 'make it faster' and they nodded, so I'm putting that in as the change."
+  },
+  {
+    id: "RT-083", title: "Satellite dish realignment thing",
+    requester: "mason", type: "Normal", statedRisk: "Low",
+    systems: ["Satellite Link Router"], window: "When the wind dies down",
+    rollback: "weak", testing: "none", hiddenRisk: "Medium",
+    justification: "The dish got bumped by a forklift. Probably. The boys want to point it back where it was. Rollback is pointing it back where it is now, I guess."
+  },
+  {
+    id: "RT-084", title: "BGP stuff (the boys know)",
+    requester: "mason", type: "Normal", statedRisk: "Medium",
+    systems: ["WAN Edge Router", "NIPR Core Router"], window: "Friday afternoon",
+    rollback: "missing", testing: "partial", hiddenRisk: "High",
+    justification: "There's some BGP stuff that needs doing. I don't know what BGP stands for and at this point I'm afraid to ask. The boys tested part of it. Which part, they didn't say."
+  },
+  {
+    id: "RT-085", title: "Project milestone 4: install the new WAN router",
+    requester: "mason", type: "Normal", statedRisk: "Low",
+    systems: ["WAN Edge Router"], window: "Sat 0800 (milestone 4 is due)",
+    rollback: "weak", testing: "partial", hiddenRisk: "Medium",
+    justification: "Milestone 4 of 9. The router's racked. The boys plugged it in and the lights came on, which I'm counting as partial testing. Rollback is plugging the old one back in if we can find the cables."
+  },
+  {
+    id: "RT-086", title: "Router firmware on all of 'em, before my fishing trip",
+    requester: "mason", type: "Normal", statedRisk: "Low",
+    systems: ["Remote Site Routers", "NIPR Core Router"], window: "Friday 1500 (I leave at 1600)",
+    rollback: "missing", testing: "none", hiddenRisk: "High",
+    justification: "I'd like this off my plate before I head to the lake. The boys can push it to all the routers at once and we'll see how it shakes out Monday."
+  },
+  {
+    id: "RT-087", title: "Replace core router power supply (Mrs. Okafor wrote this one)",
+    requester: "mason", type: "Standard", catalogueId: "SC-01", statedRisk: "Low",
+    systems: ["NIPR Core Router"], window: "Wed 0700-0715",
+    rollback: "solid", testing: "yes", hiddenRisk: "Low",
+    justification: "Mrs. Okafor filled this one out herself and made me promise not to change a word. Redundant supply, other one's healthy, hot-swap, same part. I didn't touch it. Honest."
+  },
+  {
+    id: "RT-088", title: "Route the new drone hangar",
+    requester: "mason", type: "Normal", statedRisk: "Low",
+    systems: ["NIPR Core Router", "Range Control Switches"], window: "Thursday",
+    rollback: "missing", testing: "partial", hiddenRisk: "Low",
+    justification: "The drone folks moved into the new hangar and want internet. PFC Nakamura did all the work and she's real thorough. I just didn't copy any of it over. It's in her notebook."
   }
 );

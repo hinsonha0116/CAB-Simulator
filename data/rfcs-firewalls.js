@@ -841,5 +841,143 @@ RFCS.push(
     systems: ["NIPR Perimeter Firewall"], window: "Immediately",
     rollback: "solid", testing: "partial", hiddenRisk: "Medium",
     justification: "Both perimeter units think they're active. Traffic is randomly dropping. Fix: force one to standby and resync. Done it once before, in a lab."
+  },
+
+  /* ----- Annie's RFCs: rare, reluctant, and very good ----- */
+  {
+    id: "FW-111", title: "Clean up the 'temporary' rules from Mason's 2021 project",
+    requester: "annie", type: "Normal", statedRisk: "Medium",
+    systems: ["Data Center Firewall"], window: "Sat 0600-0700",
+    rollback: "solid", testing: "yes", hiddenRisk: "Low",
+    justification: "Fourteen rules labelled 'MASON PROJECT - TEMP'. They've been temporary for four years. I traced every one, confirmed nothing uses them, and exported the config. I'd rather just do it, but apparently policy."
+  },
+  {
+    id: "FW-112", title: "Block brute-force attack on the VPN portal",
+    requester: "annie", type: "Emergency", statedRisk: "High",
+    systems: ["NIPR Perimeter Firewall"], window: "Immediately",
+    rollback: "solid", testing: "yes", hiddenRisk: "Low",
+    justification: "40,000 login attempts an hour from three address ranges. Rate-limit plus block list, tested on the lab unit. Takes two minutes to back out. Please don't make me fill in another form for this."
+  },
+  {
+    id: "FW-113", title: "Template rule: SIEM collector to the new log source",
+    requester: "annie", type: "Standard", catalogueId: "SC-05", statedRisk: "Low",
+    systems: ["Data Center Firewall", "SIEM Log Servers"], window: "Tue 1300-1305",
+    rollback: "solid", testing: "yes", hiddenRisk: "Low",
+    justification: "Template FT-07. Internal, named hosts, 12-month expiry. Five minutes of work and twenty minutes of paperwork."
+  },
+  {
+    id: "FW-114", title: "Migrate TOC firewall rules to the new object model",
+    requester: "annie", type: "Normal", statedRisk: "Medium",
+    systems: ["TOC Firewall"], window: "Sat 0800-1000",
+    rollback: "solid", testing: "yes", hiddenRisk: "Medium",
+    justification: "Converted all 312 rules by hand. Diffed old and new behaviour against a week of traffic captures. Old config staged for instant restore. It's ready. I'm ready. Mason is not involved."
+  },
+  {
+    id: "FW-115", title: "Re-run the HA heartbeat cables Mason 'tidied up'",
+    requester: "annie", type: "Normal", statedRisk: "Low",
+    systems: ["Data Center Firewall"], window: "Wed 0700-0730",
+    rollback: "solid", testing: "yes", hiddenRisk: "Low",
+    justification: "Somebody zip-tied the firewall heartbeat cables to the power cables 'to make it neat'. I'll give you one guess who. One cable at a time, cluster stays up. Tested the procedure on the lab pair.",
+    returnsAsEmergency: {
+      reason: "The firewall cluster's heartbeat link failed overnight because of interference from the power cables. Both units went active. Traffic dropped randomly for three hours.",
+      title: "EMERGENCY: Fix firewall heartbeat cabling, cluster split-brain",
+      statedRisk: "Medium",
+      window: "Immediately",
+      justification: "I said this would happen. I said it in writing. I said who caused it. Approve this and I'll fix it in twenty minutes."
+    }
+  },
+  {
+    id: "FW-116", title: "Turn on logging for every 'any' rule",
+    requester: "annie", type: "Normal", statedRisk: "Low",
+    systems: ["Data Center Firewall", "Firewall Management Server"], window: "Tue 1500-1515",
+    rollback: "solid", testing: "yes", hiddenRisk: "Low",
+    justification: "There are nine rules with 'any' in them. I want to know who uses them before I kill them. Logging only, no behaviour change. Log volume measured in the lab: trivial."
+  },
+  {
+    id: "FW-117", title: "Rebuild the NIPR perimeter rule base from scratch",
+    requester: "annie", type: "Normal", statedRisk: "High",
+    systems: ["NIPR Perimeter Firewall"], window: "Sat 0000-0600",
+    rollback: "solid", testing: "yes", hiddenRisk: "Medium",
+    justification: "The current rule base is 11 years of layered guesswork. I've rebuilt it clean: 2,100 rules down to 340, validated against 30 days of real traffic. Old config loads back in 90 seconds. Yes, it's big. That's why I tested it.",
+    rejectedReport: "Annie has informed the board, in writing, that she won't be submitting another RFC this fiscal year. She cc'd Mason, for reasons nobody can explain."
+  },
+  {
+    id: "FW-118", title: "Renew the SIPR perimeter firewall certificate",
+    requester: "annie", type: "Standard", catalogueId: "SC-02", statedRisk: "Low",
+    systems: ["SIPR Perimeter Firewall"], window: "Thu 0700-0715",
+    rollback: "solid", testing: "yes", hiddenRisk: "Low",
+    justification: "Expires in 12 days. Same CA, same names, validation scripted, old cert kept. This is the most standard change in the catalogue and I resent writing it up."
+  },
+  {
+    id: "FW-119", title: "Undo the 'helpful' rule an intern added on Mason's say-so",
+    requester: "annie", type: "Emergency", statedRisk: "Medium",
+    systems: ["TOC Firewall"], window: "Immediately",
+    rollback: "solid", testing: "yes", hiddenRisk: "Low",
+    justification: "Mason told an intern to 'open whatever the vendor needs'. The intern opened everything. I have the exact rule and the exact config from before it. Removing it takes thirty seconds. Explaining it to Mason will take longer."
+  },
+  {
+    id: "FW-120", title: "Update Remote Site Firewall firmware, one site at a time",
+    requester: "annie", type: "Normal", statedRisk: "Medium",
+    systems: ["Remote Site Firewalls"], window: "Sat 0700-1300",
+    rollback: "solid", testing: "yes", hiddenRisk: "Medium",
+    justification: "Approved firmware, tested on the lab unit for a week. One site at a time, console access confirmed at each, previous image kept on flash. Unlike the last time somebody tried this."
+  },
+  {
+    id: "FW-121", title: "Add geo-IP exceptions for the coalition partner",
+    requester: "annie", type: "Normal", statedRisk: "Low",
+    systems: ["NIPR Perimeter Firewall"], window: "Thu 1400-1415",
+    rollback: "solid", testing: "partial", hiddenRisk: "Low",
+    justification: "The geo-block is stopping the partner nation's exercise team. Three named address ranges. Tested from their test host; their production hosts weren't available. Removing it is one line."
+  },
+  {
+    id: "FW-122", title: "Exempt clinic medical devices from TLS inspection",
+    requester: "annie", type: "Normal", statedRisk: "Medium",
+    systems: ["NIPR Perimeter Firewall", "Clinic Switches"], window: "Sun 0600-0700",
+    rollback: "solid", testing: "yes", hiddenRisk: "Low",
+    justification: "Inspection is breaking the imaging system's vendor connection. Exemption for 11 named devices only, approved by Cyber. Tested with the vendor on Thursday."
+  },
+  {
+    id: "FW-123", title: "Stop Mason's network scanner from melting the firewall",
+    requester: "annie", type: "Emergency", statedRisk: "Medium",
+    systems: ["Data Center Firewall"], window: "Immediately",
+    rollback: "solid", testing: "yes", hiddenRisk: "Low",
+    justification: "Mason bought a 'network discovery tool' and pointed it at the entire installation, twice a minute. Firewall CPU at 98%. One block rule for the scanner's address. I'll discuss the rest with him. Or HR will."
+  },
+  {
+    id: "FW-124", title: "Annual firewall rule recertification cleanup",
+    requester: "annie", type: "Normal", statedRisk: "Low",
+    systems: ["Data Center Firewall"], window: "Sat 0700-0800",
+    rollback: "solid", testing: "partial", hiddenRisk: "Medium",
+    justification: "Owners failed to recertify 37 rules. Removing them per policy. Config exported. I tested the removals against 90 days of logs; anything quarterly or annual won't show up in that, but policy is policy."
+  },
+
+  /* ----- Mason's firewall RFCs: submitted "on behalf of" people ----- */
+  {
+    id: "FW-125", title: "Firewall thing for Building 900 (on behalf of Annie)",
+    requester: "mason", type: "Normal", statedRisk: "Low",
+    systems: ["Data Center Firewall"], window: "Thursday, I reckon",
+    rollback: "missing", testing: "none", hiddenRisk: "Low",
+    justification: "Annie's got a firewall thing for Building 900. She knows what she's doing, so I left the technical stuff off. Rollback: Annie. Testing: Annie. Annie doesn't know I submitted this yet."
+  },
+  {
+    id: "FW-126", title: "Open some ports for the range camera project",
+    requester: "mason", type: "Normal", statedRisk: "Low",
+    systems: ["NIPR Perimeter Firewall", "Range Control Switches"], window: "Thursday (it's on the Gantt chart)",
+    rollback: "weak", testing: "none", hiddenRisk: "Medium",
+    justification: "The camera vendor needs 'a few ports'. I didn't ask which. It's milestone 6 on my Gantt chart, and milestone 6 is due Thursday, so that's when it's happening."
+  },
+  {
+    id: "FW-127", title: "Firewall upgrades, ASAP (the boys say so)",
+    requester: "mason", type: "Normal", statedRisk: "Medium",
+    systems: ["Data Center Firewall", "TOC Firewall", "Remote Site Firewalls"], window: "ASAP",
+    rollback: "missing", testing: "partial", hiddenRisk: "High",
+    justification: "The boys say the firewalls need upgrading. I didn't ask which ones, or to what. Somebody tested something on something. It's a priority because I put it in red on the chart."
+  },
+  {
+    id: "FW-128", title: "Standard firewall rule for the project",
+    requester: "mason", type: "Standard", statedRisk: "Low",
+    systems: ["Data Center Firewall"], window: "Whenever",
+    rollback: "missing", testing: "none", hiddenRisk: "Medium",
+    justification: "This one's standard, I'm pretty sure. It's a firewall rule, and we do those all the time. I couldn't find it in the catalogue but I figured that was the catalogue's problem."
   }
 );

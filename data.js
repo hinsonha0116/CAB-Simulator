@@ -241,6 +241,34 @@ const CHARACTERS = {
       sendBack: "CW2 Jackson resubmits with a 2-page technical annex. No adjectives.",
       hold: "CW2 Jackson says 'Smart.' This is the most he has ever said in CAB."
     }
+  },
+  annie: {
+    name: "Annie Delgado",
+    shortName: "Annie",
+    role: "Firewall Engineer Extraordinaire",
+    clout: "Medium",
+    followThrough: "High",
+    personality: "Knows every rule on every firewall by heart. Submits RFCs only when cornered. Has not forgiven Mason for The Incident of five years ago.",
+    reactions: {
+      approve: "Annie is already logged in. She mutters that at least Mason didn't get his hands on this one.",
+      reject: "Annie asks the board, very calmly, whether Mason put them up to this.",
+      sendBack: "Annie resubmits in nine minutes with a 40-line rule diff and the words 'happy now?'",
+      hold: "Annie is fine with the hold. She'll spend the week fixing something Mason broke."
+    }
+  },
+  mason: {
+    name: "Mason Tidwell",
+    shortName: "Mason",
+    role: "Network Team Lead (in spirit) / Project Manager",
+    clout: "Medium",
+    followThrough: "Medium",
+    personality: "A likeable redneck who runs the network team in spirit only. Hasn't logged in to a router since 2014. Keeps the project Gantt chart taped to the dashboard of his truck.",
+    reactions: {
+      approve: "Mason whoops, says 'Hot dang!' and goes to tell the boys to do whatever it was.",
+      reject: "Mason says 'Well, shoot' and asks whether anybody read the part he left out.",
+      sendBack: "Mason scratches his head and says he'll 'holler at the boys' about the missing bits.",
+      hold: "Mason says the hold suits him fine. He's got a fishing trip that week anyway."
+    }
   }
 };
 
@@ -343,6 +371,18 @@ const COLLISION_REPORTS = {
     "{a} ran both changes on the {system} at once 'to save time'. It did not save time.",
     "{a}'s second change undid {a}'s first change. {a} has been counselled by {a}.",
     "{a} forgot there was already a change running on the {system}. Both failed."
+  ],
+  // Special lines when these two people's changes clash with each other.
+  rivalries: [
+    {
+      between: ["annie", "mason"],
+      lines: [
+        "Annie's change and Mason's change both hit the {system} in the same window. Annie fixed both in 20 minutes, then spent an hour writing an email about it. Mason has not opened the email.",
+        "The {system} went down when Mason's project collided with Annie's change. Annie says this is exactly like what happened five years ago. Mason still doesn't know what happened five years ago.",
+        "Mason's 'boys' and Annie were both working on the {system} at once. Annie's version of events is 14 pages long. Mason's is 'well, shoot'.",
+        "Annie's and Mason's changes collided on the {system}. Annie has added this to The List. Nobody has ever seen The List, but everybody knows it exists."
+      ]
+    }
   ]
 };
 
@@ -519,6 +559,8 @@ const MENTOR = {
 
   // General wisdom, used when there's room for one more tip.
   general: [
+    "When Mason submits on behalf of an engineer, the engineer usually did the work and Mason usually didn't write it down. Send it back and it often comes back much better.",
+    "Annie's RFCs are short because she's already done the work. Don't mistake short for incomplete: check the rollback plan and the testing, same as anyone. And never let Mason submit for her.",
     "The CMDB tells you what a change touches. The systems list on the card is the short version. Two changes on the same configuration item is the first thing I look for.",
     "Requesters with clout aren't wrong more often. They're just harder to say no to. Judge the RFC, not the name on it.",
     "A good RFC answers three questions before you ask: how do we know it works, how do we undo it, and when will it happen.",
@@ -644,7 +686,7 @@ const EVENTS = [
   {
     id: "unauthorizedChange",
     title: "Unauthorized change discovered",
-    suspects: ["kowalski", "brandt", "whitfield", "okafor", "menon", "patchbot"],
+    suspects: ["kowalski", "brandt", "whitfield", "okafor", "menon", "patchbot", "mason"],
     text: [
       "The network monitoring system spotted a configuration change on a core switch at 0312. There's no RFC. The login belongs to {name}.",
       "A router in the comms closet has a new sticky note: 'Upgraded - don't touch'. Nobody raised a change. The handwriting looks like {name}'s.",

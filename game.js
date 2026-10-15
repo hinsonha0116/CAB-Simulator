@@ -285,13 +285,14 @@ function readinessScore(rfc) {
 
 // Is it ready for the CAB? Returns "ready", "borderline" or "notReady".
 //  - Emergency changes always go forward (they can't wait).
-//  - A Standard change is only valid if it's fully prepared (score 4).
-//    If not, it isn't really standard and should be resubmitted as Normal.
+//  - A Standard change is only valid if it names a catalogue entry AND
+//    is fully prepared (score 4). If not, it isn't really standard and
+//    should be resubmitted as Normal.
 //  - Normal changes: 3-4 ready, 2 borderline, 0-1 not ready.
 function assessReadiness(rfc) {
   const score = readinessScore(rfc);
   if (rfc.type === "Emergency") return "ready";
-  if (rfc.type === "Standard") return score === 4 ? "ready" : "notReady";
+  if (rfc.type === "Standard") return (score === 4 && rfc.catalogueId) ? "ready" : "notReady";
   if (score >= 3) return "ready";
   if (score === 2) return "borderline";
   return "notReady";
@@ -642,8 +643,13 @@ function resolveCollisions(entries) {
       const shared = sharedSystems(a, b);
       if (shared.length === 0 || Math.random() >= COLLISION_CHANCE) continue;
 
+      // Some pairs of people have their own special lines (a rivalry).
       const samePerson = a.requester === b.requester;
-      const text = pickRandom(samePerson ? COLLISION_REPORTS.samePerson : COLLISION_REPORTS.twoPeople)
+      const rivalry = (COLLISION_REPORTS.rivalries || []).find(r =>
+        r.between.includes(a.requester) && r.between.includes(b.requester) && !samePerson);
+      const lines = rivalry ? rivalry.lines
+        : samePerson ? COLLISION_REPORTS.samePerson : COLLISION_REPORTS.twoPeople;
+      const text = pickRandom(lines)
         .replaceAll("{system}", shared[0])
         .replaceAll("{a}", shortNameOf(a.requester))
         .replaceAll("{b}", shortNameOf(b.requester));
@@ -941,7 +947,8 @@ const TYPE_COLOURS = { Standard: "good", Normal: "info", Emergency: "bad" };
 // "Capt. Elena Reyes" (the last two words, so ranks are skipped).
 // Each character gets a fixed colour based on their position in data.js.
 const AVATAR_COLOURS = ["#2f5fa7", "#2f8f4e", "#a2452f", "#7a4fb0", "#b97f0f",
-  "#1f8a8a", "#b0457a", "#4a6b2f", "#5a5fc0", "#8a5a2f", "#3d7cb0", "#6b5a8a"];
+  "#1f8a8a", "#b0457a", "#4a6b2f", "#5a5fc0", "#8a5a2f", "#3d7cb0", "#6b5a8a",
+  "#c0392b", "#7d6b2f"];
 
 function renderAvatar(characterKey) {
   const initials = CHARACTERS[characterKey].name
